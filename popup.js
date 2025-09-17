@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- DOM Element References ---
     const fontSizeSelect = document.getElementById('font-size');
-    const unitRadios = document.querySelectorAll('input[name="font-size-unit"]');
+    const fontSizeUnitSelect = document.querySelector('input[name="font-size-unit"]:checked');
     const fontWeightSelect = document.getElementById('font-weight');
     const fgColorPicker = document.getElementById('fg-color-picker');
     const fgColorText = document.getElementById('fg-color-text');
@@ -21,7 +21,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const suggestionsContainer = document.querySelector('.suggestions-container');
     const fontSuggestion = document.getElementById('font-suggestion');
     const fontSuggestionDetails = document.getElementById('font-suggestion-details');
+    const c1SuggestionWrapper = document.getElementById('c1-suggestion-wrapper');
+    const c2SuggestionWrapper = document.getElementById('c2-suggestion-wrapper');
     const suggestionC1Prefix = document.getElementById('suggestion-c1-prefix');
+    const suggestionC2Prefix = document.getElementById('suggestion-c2-prefix');
     const suggestionC1Swatch = document.getElementById('suggestion-c1-swatch');
     const suggestionC1Hex = document.getElementById('suggestion-c1-hex');
     const suggestionC1Ratio = document.getElementById('suggestion-c1-ratio');
@@ -36,17 +39,19 @@ document.addEventListener('DOMContentLoaded', () => {
     bgColorText.addEventListener('input', () => { bgColorPicker.value = bgColorText.value; showButton(); });
     
     checkContrastBtn.addEventListener('click', checkContrast);
-    unitRadios.forEach(radio => radio.addEventListener('change', () => {
-        updateFontSizeOptions();
-        showButton();
-    }));
+    document.querySelectorAll('input[name="font-size-unit"]').forEach(radio => {
+        radio.addEventListener('change', () => {
+            updateFontSizeOptions();
+            showButton();
+        });
+    });
     fontSizeSelect.addEventListener('change', showButton);
     fontWeightSelect.addEventListener('change', showButton);
 
 
     // --- Initial Setup ---
     updateFontSizeOptions();
-    checkContrast(); // Run a check on load
+    checkContrast();
 
     // --- Main Functions ---
     function updateFontSizeOptions() {
@@ -135,28 +140,42 @@ document.addEventListener('DOMContentLoaded', () => {
             checkStatusMessage.classList.add('fail');
             suggestionsContainer.style.display = 'flex';
             
+            // Hide all suggestions initially
+            fontSuggestion.style.display = 'none';
+            c1SuggestionWrapper.style.display = 'none';
+            c2SuggestionWrapper.style.display = 'none';
+
+            let firstSuggestionShown = false;
+
+            // Font suggestion logic
             const canPassAsLarge = ratio >= 3.0;
             if (!isLargeText && canPassAsLarge) {
                 fontSuggestion.style.display = 'flex';
                 let suggestionText = `Enlarge text: min `;
                 suggestionText += (fontSizeUnit === 'pt') ? `14pt bold or 18pt non bold` : `18.66px bold or 24px non bold`;
                 fontSuggestionDetails.textContent = suggestionText;
-                suggestionC1Prefix.textContent = 'Or replace';
-            } else {
-                fontSuggestion.style.display = 'none';
-                suggestionC1Prefix.textContent = 'Replace';
+                firstSuggestionShown = true;
             }
 
-            // Color suggestion logic
+            // Color suggestion logic - always targets the specific neededRatio (4.5 or 3.0)
             const suggestedFg = findPassingColor(fgRgb, bgRgb, neededRatio);
-            suggestionC1Swatch.style.backgroundColor = suggestedFg;
-            suggestionC1Hex.textContent = suggestedFg;
-            suggestionC1Ratio.textContent = getContrastRatio(hexToRgb(suggestedFg), bgRgb).toFixed(2);
+            if (suggestedFg && suggestedFg.toLowerCase() !== fgColorHex.toLowerCase()) {
+                c1SuggestionWrapper.style.display = 'flex';
+                suggestionC1Prefix.textContent = firstSuggestionShown ? 'Or replace' : 'Replace';
+                suggestionC1Swatch.style.backgroundColor = suggestedFg;
+                suggestionC1Hex.textContent = suggestedFg;
+                suggestionC1Ratio.textContent = getContrastRatio(hexToRgb(suggestedFg), bgRgb).toFixed(2);
+                firstSuggestionShown = true;
+            }
 
             const suggestedBg = findPassingColor(bgRgb, fgRgb, neededRatio);
-            suggestionC2Swatch.style.backgroundColor = suggestedBg;
-            suggestionC2Hex.textContent = suggestedBg;
-            suggestionC2Ratio.textContent = getContrastRatio(fgRgb, hexToRgb(suggestedBg)).toFixed(2);
+            if (suggestedBg && suggestedBg.toLowerCase() !== bgColorHex.toLowerCase()) {
+                c2SuggestionWrapper.style.display = 'flex';
+                suggestionC2Prefix.textContent = firstSuggestionShown ? 'Or replace' : 'Replace';
+                suggestionC2Swatch.style.backgroundColor = suggestedBg;
+                suggestionC2Hex.textContent = suggestedBg;
+                suggestionC2Ratio.textContent = getContrastRatio(fgRgb, hexToRgb(suggestedBg)).toFixed(2);
+            }
         }
 
         resultsContainer.style.display = 'block';
@@ -242,19 +261,55 @@ document.addEventListener('DOMContentLoaded', () => {
     function findPassingColor(fgColor, bgColor, targetRatio) {
         const bgLuminance = getLuminance(bgColor);
         const fgHsl = rgbToHsl(fgColor);
-        let direction = (bgLuminance > 0.5) ? -1 : 1;
+        let direction = (bgLuminance > 0.5) ? -1 : 1; // -1 to darken, 1 to lighten
         let min = 0, max = 1;
-        if (direction === -1) { max = fgHsl.l; } else { min = fgHsl.l; }
-        for (let i = 0; i < 20; i++) {
+
+        if (direction === -1) { 
+            max = fgHsl.l; 
+        } else { 
+            min = fgHsl.l; 
+        }
+
+        // Binary search for the lightness value that meets the target ratio
+        for (let i = 0; i < 30; i++) {
             let mid = (min + max) / 2;
             let newHsl = { ...fgHsl, l: mid };
             if (getContrastRatio(hslToRgb(newHsl), bgColor) >= targetRatio) {
-                if (direction === 1) max = mid; else min = mid;
+                if (direction === 1) { // If lightening, this is a potential good value, try for darker
+                    max = mid;
+                } else { // If darkening, this is a potential good value, try for lighter
+                    min = mid;
+                }
             } else {
-                if (direction === 1) min = mid; else max = mid;
+                if (direction === 1) { // If lightening, it's not light enough
+                    min = mid;
+                } else { // If darkening, it's not dark enough
+                    max = mid;
+                }
             }
         }
-        return rgbToHex(hslToRgb({ ...fgHsl, l: (direction === 1) ? max : min }));
+
+        // Select the final lightness value from the search boundary
+        let finalL = (direction === 1) ? max : min;
+        let finalHsl = { ...fgHsl, l: finalL };
+
+        // Final robust check: Nudge it in a loop until it passes.
+        let iterations = 0; // Safety against infinite loops
+        while (getContrastRatio(hslToRgb(finalHsl), bgColor) < targetRatio && iterations < 100) {
+            finalHsl.l += (direction * 0.0001); // A very small nudge
+            if (finalHsl.l < 0 || finalHsl.l > 1) {
+                return null; // No solution found within the valid color range
+            }
+            iterations++;
+        }
+        
+        // After nudging, if it's still failing, no solution exists.
+        if (getContrastRatio(hslToRgb(finalHsl), bgColor) < targetRatio) {
+             return null;
+        }
+        
+        finalHsl.l = Math.max(0, Math.min(1, finalHsl.l)); // Clamp value to the valid 0-1 range
+        return rgbToHex(hslToRgb(finalHsl));
     }
 });
 

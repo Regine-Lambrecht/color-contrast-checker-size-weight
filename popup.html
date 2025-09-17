@@ -279,21 +279,21 @@
 
     <div class="suggestions-container">
         <h2>Improvement Suggestions</h2>
-        <div class="suggestion" id="font-suggestion">
+        <div class="suggestion" id="font-suggestion" style="display: none;">
             <div class="suggestion-details" id="font-suggestion-details"></div>
         </div>
 
-        <div class="suggestion">
+        <div class="suggestion" id="c1-suggestion-wrapper" style="display: none;">
             <div class="suggestion-swatch" id="suggestion-c1-swatch"></div>
             <div class="suggestion-details">
                 <span id="suggestion-c1-prefix">Replace</span> Colour 1 with <span class="suggestion-hex" id="suggestion-c1-hex"></span>
             </div>
             <span class="result-value" id="suggestion-c1-ratio"></span>
         </div>
-        <div class="suggestion">
+        <div class="suggestion" id="c2-suggestion-wrapper" style="display: none;">
             <div class="suggestion-swatch" id="suggestion-c2-swatch"></div>
             <div class="suggestion-details">
-                Or replace Colour 2 with <span class="suggestion-hex" id="suggestion-c2-hex"></span>
+                <span id="suggestion-c2-prefix">Or replace</span> Colour 2 with <span class="suggestion-hex" id="suggestion-c2-hex"></span>
             </div>
             <span class="result-value" id="suggestion-c2-ratio"></span>
         </div>
@@ -302,10 +302,4 @@
     <script src="popup.js"></script>
 </body>
 </html>
-
-
-
-
-
-
 

@@ -9,15 +9,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const bgColorText = document.getElementById('bg-color-text');
     const checkContrastBtn = document.getElementById('check-contrast-btn');
     const checkStatusMessage = document.getElementById('check-status-message');
-    const contrastRatioSpan = document.getElementById('contrast-ratio');
-    const neededRatioSpan = document.getElementById('needed-ratio');
+    const resultsContainer = document.querySelector('.results-container');
     
     // WCAG AA Result Elements
+    const contrastRatioSpan = document.getElementById('contrast-ratio');
+    const neededRatioSpan = document.getElementById('needed-ratio');
     const aaOverallStatusSpan = document.getElementById('aa-overall-status');
     const aaTextTypeSpan = document.getElementById('aa-text-type');
 
     // Suggestion Elements
-    const suggestionsWrapper = document.getElementById('suggestions-wrapper');
+    const suggestionsContainer = document.querySelector('.suggestions-container');
+    const fontSuggestion = document.getElementById('font-suggestion');
+    const fontSuggestionDetails = document.getElementById('font-suggestion-details');
     const suggestionC1Swatch = document.getElementById('suggestion-c1-swatch');
     const suggestionC1Hex = document.getElementById('suggestion-c1-hex');
     const suggestionC1Ratio = document.getElementById('suggestion-c1-ratio');
@@ -26,68 +29,53 @@ document.addEventListener('DOMContentLoaded', () => {
     const suggestionC2Ratio = document.getElementById('suggestion-c2-ratio');
 
     // --- Event Listeners ---
-    fgColorPicker.addEventListener('input', () => fgColorText.value = fgColorPicker.value);
-    fgColorText.addEventListener('input', () => fgColorPicker.value = fgColorText.value);
-    bgColorPicker.addEventListener('input', () => bgColorText.value = bgColorPicker.value);
-    bgColorText.addEventListener('input', () => bgColorPicker.value = bgColorText.value);
+    fgColorPicker.addEventListener('input', () => { fgColorText.value = fgColorPicker.value; showButton(); });
+    fgColorText.addEventListener('input', () => { fgColorPicker.value = fgColorText.value; showButton(); });
+    bgColorPicker.addEventListener('input', () => { bgColorText.value = bgColorPicker.value; showButton(); });
+    bgColorText.addEventListener('input', () => { bgColorPicker.value = bgColorText.value; showButton(); });
+    
     checkContrastBtn.addEventListener('click', checkContrast);
-    fontSizeUnitSelect.addEventListener('change', updateFontSizeOptions);
-
-
-    // Listen for any input change to show the button again
-    const allInputs = [
-        fontSizeSelect, fontSizeUnitSelect, 
-        fontWeightSelect, fgColorPicker, fgColorText, bgColorPicker, bgColorText
-    ];
-    allInputs.forEach(input => {
-        const eventType = input.tagName.toLowerCase() === 'select' ? 'change' : 'input';
-        input.addEventListener(eventType, showButton);
+    fontSizeUnitSelect.addEventListener('change', () => {
+        updateFontSizeOptions();
+        showButton();
     });
+    fontSizeSelect.addEventListener('change', showButton);
+    fontWeightSelect.addEventListener('change', showButton);
+
 
     // --- Initial Setup ---
     updateFontSizeOptions();
-    checkContrast();
+    checkContrast(); // Run a check on load
 
     // --- Main Functions ---
-
     function updateFontSizeOptions() {
         const unit = fontSizeUnitSelect.value;
+        const currentVal = fontSizeSelect.value;
         fontSizeSelect.innerHTML = ''; // Clear existing options
 
         let options;
         if (unit === 'pt') {
             options = [
-                { value: 12, text: '< 14' },
-                { value: 14, text: '14' },
-                { value: 14.5, text: '14.5' },
-                { value: 15, text: '15' },
-                { value: 15.5, text: '15.5' },
-                { value: 16, text: '16' },
-                { value: 17, text: '17' },
-                { value: 17.5, text: '17.5' },
-                { value: 18, text: '18' },
-                { value: 24, text: '> 18' }
+                { value: 12, text: '< 14' }, { value: 14, text: '14' },
+                { value: 14.5, text: '14.5' }, { value: 15, text: '15' },
+                { value: 15.5, text: '15.5' }, { value: 16, text: '16' },
+                { value: 17, text: '17' }, { value: 17.5, text: '17.5' },
+                { value: 18, text: '18' }, { value: 24, text: '> 18' }
             ];
         } else { // px
              options = [
-                { value: 18, text: '< 18.5' },
-                { value: 18.5, text: '18.5' },
-                { value: 19, text: '19' },
-                { value: 19.5, text: '19.5' },
-                { value: 20, text: '20' },
-                { value: 20.5, text: '20.5' },
-                { value: 21, text: '21' },
-                { value: 21.5, text: '21.5' },
-                { value: 22, text: '22' },
-                { value: 22.5, text: '22.5' },
-                { value: 23, text: '23' },
-                { value: 23.5, text: '23.5' },
-                { value: 24, text: '≥ 24' }
+                { value: 16, text: '16' }, { value: 18, text: '< 18.5' },
+                { value: 18.5, text: '18.5' }, { value: 19, text: '19' },
+                { value: 19.5, text: '19.5' }, { value: 20, text: '20' },
+                { value: 20.5, text: '20.5' }, { value: 21, text: '21' },
+                { value: 21.5, text: '21.5' }, { value: 22, text: '22' },
+                { value: 22.5, text: '22.5' }, { value: 23, text: '23' },
+                { value: 23.5, text: '23.5' }, { value: 24, text: '≥ 24' }
             ];
         }
         
-        const defaultValue = (unit === 'pt') ? 16 : 16;
-
+        const defaultValue = (unit === 'pt') ? '12' : '16';
+        
         options.forEach(opt => {
             const optionEl = document.createElement('option');
             optionEl.value = opt.value;
@@ -95,13 +83,15 @@ document.addEventListener('DOMContentLoaded', () => {
             fontSizeSelect.appendChild(optionEl);
         });
         
-        fontSizeSelect.value = defaultValue;
-        showButton();
+        const potentialOption = options.find(o => o.value == currentVal);
+        fontSizeSelect.value = potentialOption ? currentVal : defaultValue;
     }
 
     function showButton() {
         checkContrastBtn.style.display = 'block';
         checkStatusMessage.style.display = 'none';
+        resultsContainer.style.display = 'none';
+        suggestionsContainer.style.display = 'none';
     }
 
     function checkContrast() {
@@ -112,10 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const fgColorHex = fgColorText.value;
         const bgColorHex = bgColorText.value;
         
-        // Convert pt to px if necessary (1pt = 1.333px)
-        if (fontSizeUnit === 'pt') {
-            fontSize *= 1.333;
-        }
+        let fontSizePx = (fontSizeUnit === 'pt') ? fontSize * 1.3333 : fontSize;
 
         const fgRgb = hexToRgb(fgColorHex);
         const bgRgb = hexToRgb(bgColorHex);
@@ -124,11 +111,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const ratio = getContrastRatio(fgRgb, bgRgb);
         contrastRatioSpan.textContent = ratio.toFixed(2);
-        
-        // Using a small epsilon for floating point comparison
-        const isLargeText = (fontSize >= 24) || (fontSize >= 18.66 - 0.001 && fontWeight >= 700);
-        
-        const neededRatio = isLargeText ? 3 : 4.5;
+
+        const isLargeText = (fontSizePx >= 24) || (fontSizePx >= 18.66 && fontWeight >= 700);
+        const neededRatio = isLargeText ? 3.0 : 4.5;
         neededRatioSpan.textContent = neededRatio;
         
         aaTextTypeSpan.textContent = `(${isLargeText ? 'Large text' : 'Normal text'})`;
@@ -136,33 +121,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const aaPass = ratio >= neededRatio;
         updateStatus(aaOverallStatusSpan, aaPass);
 
-        // --- Show or hide suggestions based on pass/fail status ---
-        if (aaPass) {
-            suggestionsWrapper.style.display = 'none';
-        } else {
-            const suggestedFg = findPassingColor(fgRgb, bgRgb, neededRatio);
-            const suggestedBg = findPassingColor(bgRgb, fgRgb, neededRatio);
-            
-            const suggestedFgRgb = hexToRgb(suggestedFg);
-            const suggestedBgRgb = hexToRgb(suggestedBg);
-
-            suggestionC1Swatch.style.backgroundColor = suggestedFg;
-            suggestionC1Hex.textContent = suggestedFg;
-
-            suggestionC2Swatch.style.backgroundColor = suggestedBg;
-            suggestionC2Hex.textContent = suggestedBg;
-            
-            if (suggestedFgRgb) {
-                suggestionC1Ratio.textContent = getContrastRatio(suggestedFgRgb, bgRgb).toFixed(2);
-            }
-            if (suggestedBgRgb) {
-                suggestionC2Ratio.textContent = getContrastRatio(fgRgb, suggestedBgRgb).toFixed(2);
-            }
-
-            suggestionsWrapper.style.display = 'flex';
-        }
-        
-        // --- Show result message instead of button ---
         checkContrastBtn.style.display = 'none';
         checkStatusMessage.style.display = 'block';
         checkStatusMessage.classList.remove('pass', 'fail');
@@ -170,14 +128,39 @@ document.addEventListener('DOMContentLoaded', () => {
         if (aaPass) {
             checkStatusMessage.textContent = 'Your contrast is ok';
             checkStatusMessage.classList.add('pass');
+            suggestionsContainer.style.display = 'none';
         } else {
             checkStatusMessage.textContent = 'Your contrast is not ok';
             checkStatusMessage.classList.add('fail');
+            suggestionsContainer.style.display = 'flex';
+            
+            // --- NEW: Font suggestion logic ---
+            const canPassAsLarge = ratio >= 3.0;
+            if (!isLargeText && canPassAsLarge) {
+                fontSuggestion.style.display = 'flex';
+                let suggestionText = `Enlarge text: min `;
+                suggestionText += (fontSizeUnit === 'pt') ? `14pt bold or 18pt non bold` : `18.66px bold or 24px non bold`;
+                fontSuggestionDetails.textContent = suggestionText;
+            } else {
+                fontSuggestion.style.display = 'none';
+            }
+
+            // Color suggestion logic
+            const suggestedFg = findPassingColor(fgRgb, bgRgb, neededRatio);
+            suggestionC1Swatch.style.backgroundColor = suggestedFg;
+            suggestionC1Hex.textContent = suggestedFg;
+            suggestionC1Ratio.textContent = getContrastRatio(hexToRgb(suggestedFg), bgRgb).toFixed(2);
+
+            const suggestedBg = findPassingColor(bgRgb, fgRgb, neededRatio);
+            suggestionC2Swatch.style.backgroundColor = suggestedBg;
+            suggestionC2Hex.textContent = suggestedBg;
+            suggestionC2Ratio.textContent = getContrastRatio(fgRgb, hexToRgb(suggestedBg)).toFixed(2);
         }
+
+        resultsContainer.style.display = 'block';
     }
 
     // --- Helper Functions ---
-
     function updateStatus(element, passes) {
         element.textContent = passes ? 'PASS' : 'FAIL';
         element.classList.toggle('pass', passes);
@@ -217,14 +200,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function rgbToHsl(rgb) {
-        let { r, g, b } = rgb;
-        r /= 255; g /= 255; b /= 255;
+        let { r, g, b } = rgb; r /= 255; g /= 255; b /= 255;
         const max = Math.max(r, g, b), min = Math.min(r, g, b);
         let h, s, l = (max + min) / 2;
-
-        if (max === min) {
-            h = s = 0; // achromatic
-        } else {
+        if (max === min) { h = s = 0; }
+        else {
             const d = max - min;
             s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
             switch (max) {
@@ -238,62 +218,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function hslToRgb(hsl) {
-        let { h, s, l } = hsl;
-        let r, g, b;
-
-        if (s === 0) {
-            r = g = b = l; // achromatic
-        } else {
+        let { h, s, l } = hsl; let r, g, b;
+        if (s === 0) { r = g = b = l; }
+        else {
             const hue2rgb = (p, q, t) => {
-                if (t < 0) t += 1;
-                if (t > 1) t -= 1;
-                if (t < 1 / 6) return p + (q - p) * 6 * t;
-                if (t < 1 / 2) return q;
-                if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+                if (t < 0) t += 1; if (t > 1) t -= 1;
+                if (t < 1/6) return p + (q - p) * 6 * t;
+                if (t < 1/2) return q;
+                if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
                 return p;
             };
             const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
             const p = 2 * l - q;
-            r = hue2rgb(p, q, h + 1 / 3);
+            r = hue2rgb(p, q, h + 1/3);
             g = hue2rgb(p, q, h);
-            b = hue2rgb(p, q, h - 1 / 3);
+            b = hue2rgb(p, q, h - 1/3);
         }
-        return {
-            r: r * 255,
-            g: g * 255,
-            b: b * 255
-        };
+        return { r: r * 255, g: g * 255, b: b * 255 };
     }
 
     function findPassingColor(fgColor, bgColor, targetRatio) {
         const bgLuminance = getLuminance(bgColor);
         const fgHsl = rgbToHsl(fgColor);
-
         let direction = (bgLuminance > 0.5) ? -1 : 1;
-
-        let newHsl = { ...fgHsl };
-        let currentContrast = getContrastRatio(hslToRgb(newHsl), bgColor);
-
-        if(currentContrast >= targetRatio) return rgbToHex(fgColor);
-        
         let min = 0, max = 1;
-        if (direction === -1) { max = newHsl.l; } 
-        else { min = newHsl.l; }
-
+        if (direction === -1) { max = fgHsl.l; } else { min = fgHsl.l; }
         for (let i = 0; i < 20; i++) {
-            newHsl.l = (min + max) / 2;
-            let newRgb = hslToRgb(newHsl);
-            if (getContrastRatio(newRgb, bgColor) >= targetRatio) {
-                if (direction === 1) max = newHsl.l;
-                else min = newHsl.l;
+            let mid = (min + max) / 2;
+            let newHsl = { ...fgHsl, l: mid };
+            if (getContrastRatio(hslToRgb(newHsl), bgColor) >= targetRatio) {
+                if (direction === 1) max = mid; else min = mid;
             } else {
-                if (direction === 1) min = newHsl.l;
-                else max = newHsl.l;
+                if (direction === 1) min = mid; else max = mid;
             }
         }
-        
-        newHsl.l = (direction === 1) ? max : min;
-        return rgbToHex(hslToRgb(newHsl));
+        return rgbToHex(hslToRgb({ ...fgHsl, l: (direction === 1) ? max : min }));
     }
 });
 

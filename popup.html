@@ -75,7 +75,8 @@
             margin-right: 8px;
         }
         .color-input-wrapper input[type="text"] {
-            flex-grow: 1;
+            flex-grow: 0;
+            width: 65px;
             border: none;
             padding: 0;
             font-family: monospace;
@@ -83,6 +84,45 @@
         }
         .color-input-wrapper input[type="text"]:focus {
             outline: none;
+        }
+        /* New Toggle Switch Styles */
+        .toggle-switch {
+            display: flex;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            overflow: hidden;
+            height: 38px;
+            /* box-shadow: var(--shadow); */
+        }
+        .toggle-switch input[type="radio"] {
+            display: none;
+        }
+        .toggle-switch label {
+            padding: 0 12px;
+            padding-bottom: 2px; /* Lifts the text slightly for better visual centering */
+            box-sizing: border-box; /* Ensures padding is calculated correctly */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            background-color: var(--surface-color);
+            color: var(--text-secondary);
+            transition: background-color 0.2s, color 0.2s;
+            font-size: 14px;
+            font-weight: 500;
+            flex: 1; /* Make buttons share space */
+        }
+        .toggle-switch input[type="radio"]:checked + label {
+            background-color: var(--accent-color);
+            color: white;
+            position: relative;
+            z-index: 1;
+            border: 2px solid var(--accent-color);
+            border-radius: 5px;
+            margin: -1px; /* Overlap container border */
+        }
+        .toggle-switch label:not(:last-of-type) {
+            border-right: 1px solid var(--border-color);
         }
         #check-contrast-btn, #check-status-message {
             width: 100%;
@@ -165,12 +205,6 @@
             gap: 12px;
             border: 1px solid var(--border-color);
         }
-        .suggestion-divider {
-            text-align: center;
-            color: var(--text-secondary);
-            font-weight: 500;
-            margin: 4px 0;
-        }
         .suggestion-swatch {
             width: 24px;
             height: 24px;
@@ -193,11 +227,13 @@
         <div class="input-group">
             <label for="font-size-unit">Font size</label>
             <div class="font-fields-container">
-                 <select id="font-size-unit">
-                    <option value="pt">pt</option>
-                    <option value="px" selected>px</option>
-                </select>
-                <select id="font-size"></select>
+                 <div class="toggle-switch">
+                    <input type="radio" id="unit-px" name="font-size-unit" value="px" checked>
+                    <label for="unit-px">px</label>
+                    <input type="radio" id="unit-pt" name="font-size-unit" value="pt">
+                    <label for="unit-pt">pt</label>
+                </div>
+                <select id="font-size" style="flex-grow: 1;"></select>
             </div>
         </div>
         <div class="input-group">
@@ -246,13 +282,11 @@
         <div class="suggestion" id="font-suggestion">
             <div class="suggestion-details" id="font-suggestion-details"></div>
         </div>
-        
-        <div class="suggestion-divider">or</div>
 
         <div class="suggestion">
             <div class="suggestion-swatch" id="suggestion-c1-swatch"></div>
             <div class="suggestion-details">
-                Replace Colour 1 with <span class="suggestion-hex" id="suggestion-c1-hex"></span>
+                <span id="suggestion-c1-prefix">Replace</span> Colour 1 with <span class="suggestion-hex" id="suggestion-c1-hex"></span>
             </div>
             <span class="result-value" id="suggestion-c1-ratio"></span>
         </div>
@@ -268,4 +302,10 @@
     <script src="popup.js"></script>
 </body>
 </html>
+
+
+
+
+
+
 

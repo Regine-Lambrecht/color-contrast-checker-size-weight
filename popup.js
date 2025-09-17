@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- DOM Element References ---
     const fontSizeSelect = document.getElementById('font-size');
-    const fontSizeUnitSelect = document.getElementById('font-size-unit');
+    const unitRadios = document.querySelectorAll('input[name="font-size-unit"]');
     const fontWeightSelect = document.getElementById('font-weight');
     const fgColorPicker = document.getElementById('fg-color-picker');
     const fgColorText = document.getElementById('fg-color-text');
@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const suggestionsContainer = document.querySelector('.suggestions-container');
     const fontSuggestion = document.getElementById('font-suggestion');
     const fontSuggestionDetails = document.getElementById('font-suggestion-details');
+    const suggestionC1Prefix = document.getElementById('suggestion-c1-prefix');
     const suggestionC1Swatch = document.getElementById('suggestion-c1-swatch');
     const suggestionC1Hex = document.getElementById('suggestion-c1-hex');
     const suggestionC1Ratio = document.getElementById('suggestion-c1-ratio');
@@ -35,10 +36,10 @@ document.addEventListener('DOMContentLoaded', () => {
     bgColorText.addEventListener('input', () => { bgColorPicker.value = bgColorText.value; showButton(); });
     
     checkContrastBtn.addEventListener('click', checkContrast);
-    fontSizeUnitSelect.addEventListener('change', () => {
+    unitRadios.forEach(radio => radio.addEventListener('change', () => {
         updateFontSizeOptions();
         showButton();
-    });
+    }));
     fontSizeSelect.addEventListener('change', showButton);
     fontWeightSelect.addEventListener('change', showButton);
 
@@ -49,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Main Functions ---
     function updateFontSizeOptions() {
-        const unit = fontSizeUnitSelect.value;
+        const unit = document.querySelector('input[name="font-size-unit"]:checked').value;
         const currentVal = fontSizeSelect.value;
         fontSizeSelect.innerHTML = ''; // Clear existing options
 
@@ -97,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function checkContrast() {
         // Get inputs
         let fontSize = parseFloat(fontSizeSelect.value);
-        const fontSizeUnit = fontSizeUnitSelect.value;
+        const fontSizeUnit = document.querySelector('input[name="font-size-unit"]:checked').value;
         const fontWeight = parseInt(fontWeightSelect.value, 10);
         const fgColorHex = fgColorText.value;
         const bgColorHex = bgColorText.value;
@@ -134,15 +135,16 @@ document.addEventListener('DOMContentLoaded', () => {
             checkStatusMessage.classList.add('fail');
             suggestionsContainer.style.display = 'flex';
             
-            // --- NEW: Font suggestion logic ---
             const canPassAsLarge = ratio >= 3.0;
             if (!isLargeText && canPassAsLarge) {
                 fontSuggestion.style.display = 'flex';
                 let suggestionText = `Enlarge text: min `;
                 suggestionText += (fontSizeUnit === 'pt') ? `14pt bold or 18pt non bold` : `18.66px bold or 24px non bold`;
                 fontSuggestionDetails.textContent = suggestionText;
+                suggestionC1Prefix.textContent = 'Or replace';
             } else {
                 fontSuggestion.style.display = 'none';
+                suggestionC1Prefix.textContent = 'Replace';
             }
 
             // Color suggestion logic

@@ -11,7 +11,7 @@
             --text-primary: #1a202c;
             --text-secondary: #5a6474;
             --border-color: #d1d9e3;
-            --accent-color: #007bff;
+            --accent-color: #0062cc; /* Darker blue for better contrast */
             --pass-color: #28a745;
             --fail-color: #dc3545;
             --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
@@ -37,17 +37,25 @@
             gap: 16px;
             margin-bottom: 16px;
         }
-        .input-group {
+        .input-group, fieldset {
             display: flex;
             flex-direction: column;
             gap: 6px;
         }
-        .input-group label {
+        .input-group label, legend {
             font-weight: 500;
             color: var(--text-secondary);
             font-size: 13px;
         }
-        .input-group select, .color-input-wrapper {
+        fieldset {
+            border: none;
+            padding: 0;
+            margin: 0;
+        }
+        legend {
+            padding: 0;
+        }
+        .input-group select, .color-input-wrapper, .font-fields-container {
             height: 38px;
             border: 1px solid var(--border-color);
             border-radius: 6px;
@@ -55,15 +63,20 @@
             box-sizing: border-box;
             font-size: 14px;
             box-shadow: var(--shadow);
-            padding: 0 8px;
         }
         .font-fields-container {
             display: flex;
             gap: 8px;
+            padding: 0; /* Override default padding */
+        }
+        .font-fields-container > select {
+           border: none; /* Remove border from inner select */
+           box-shadow: none;
         }
         .color-input-wrapper {
             display: flex;
             align-items: center;
+            padding: 0 8px;
         }
         input[type="color"] {
             width: 28px;
@@ -88,19 +101,18 @@
         /* New Toggle Switch Styles */
         .toggle-switch {
             display: flex;
-            border: 1px solid var(--border-color);
+            /* border: 1px solid var(--border-color); */
             border-radius: 6px;
             overflow: hidden;
-            height: 38px;
-            /* box-shadow: var(--shadow); */
+            height: 100%;
         }
         .toggle-switch input[type="radio"] {
             display: none;
         }
         .toggle-switch label {
             padding: 0 12px;
-            padding-bottom: 2px; /* Lifts the text slightly for better visual centering */
-            box-sizing: border-box; /* Ensures padding is calculated correctly */
+            padding-bottom: 2px;
+            box-sizing: border-box;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -110,7 +122,7 @@
             transition: background-color 0.2s, color 0.2s;
             font-size: 14px;
             font-weight: 500;
-            flex: 1; /* Make buttons share space */
+            flex: 1;
         }
         .toggle-switch input[type="radio"]:checked + label {
             background-color: var(--accent-color);
@@ -119,7 +131,7 @@
             z-index: 1;
             border: 2px solid var(--accent-color);
             border-radius: 5px;
-            margin: -1px; /* Overlap container border */
+            margin: -1px;
         }
         .toggle-switch label:not(:last-of-type) {
             border-right: 1px solid var(--border-color);
@@ -140,7 +152,7 @@
             border: none;
         }
         #check-contrast-btn:hover {
-            background-color: #0056b3;
+            background-color: #0059b8;
         }
         #check-status-message {
             font-weight: 500;
@@ -177,12 +189,14 @@
             font-size: 12px;
         }
         .pass {
-            color: var(--pass-color);
-            background-color: rgba(40, 167, 69, 0.1);
+            color: #0c4b1a;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
         }
         .fail {
-            color: var(--fail-color);
-            background-color: rgba(220, 53, 69, 0.1);
+            color: #5a141c;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
         }
         .suggestions-container {
             margin-top: 16px;
@@ -218,14 +232,25 @@
             font-family: monospace;
             font-weight: 600;
         }
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
     </style>
 </head>
 <body>
     <h1>Color Contrast Checker</h1>
 
     <div class="input-grid">
-        <div class="input-group">
-            <label for="font-size-unit">Font size</label>
+        <fieldset>
+            <legend>Font size</legend>
             <div class="font-fields-container">
                  <div class="toggle-switch">
                     <input type="radio" id="unit-px" name="font-size-unit" value="px" checked>
@@ -233,9 +258,10 @@
                     <input type="radio" id="unit-pt" name="font-size-unit" value="pt">
                     <label for="unit-pt">pt</label>
                 </div>
+                <label for="font-size" class="sr-only">Font size value</label>
                 <select id="font-size" style="flex-grow: 1;"></select>
             </div>
-        </div>
+        </fieldset>
         <div class="input-group">
             <label for="font-weight">Font weight</label>
             <select id="font-weight">
@@ -243,20 +269,24 @@
                 <option value="700">≥ 700 (bold)</option>
             </select>
         </div>
-        <div class="input-group">
-            <label for="fg-color-picker">Colour 1</label>
+        <fieldset>
+            <legend>Colour 1</legend>
             <div class="color-input-wrapper">
+                <label for="fg-color-picker" class="sr-only">Colour picker</label>
                 <input type="color" id="fg-color-picker" value="#000000">
+                <label for="fg-color-text" class="sr-only">Hex colour code</label>
                 <input type="text" id="fg-color-text" value="#000000" maxlength="7">
             </div>
-        </div>
-        <div class="input-group">
-            <label for="bg-color-picker">Colour 2</label>
+        </fieldset>
+        <fieldset>
+            <legend>Colour 2</legend>
             <div class="color-input-wrapper">
+                <label for="bg-color-picker" class="sr-only">Colour picker</label>
                 <input type="color" id="bg-color-picker" value="#FFFFFF">
+                <label for="bg-color-text" class="sr-only">Hex colour code</label>
                 <input type="text" id="bg-color-text" value="#FFFFFF" maxlength="7">
             </div>
-        </div>
+        </fieldset>
     </div>
     
     <button id="check-contrast-btn">Check Contrast</button>

@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -112,7 +113,15 @@
             margin-right: 6px; /* Added margin to create space */
         }
         .toggle-switch input[type="radio"] {
-            display: none;
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
         }
         .toggle-switch label {
             padding: 0 12px;
@@ -128,6 +137,11 @@
             font-size: 14px;
             font-weight: 500;
             flex: 1;
+        }
+        .toggle-switch input[type="radio"]:focus-visible + label {
+             box-shadow: inset 0 0 0 2px var(--text-primary);
+             border-radius: 5px;
+             z-index: 2;
         }
         .toggle-switch input[type="radio"]:checked + label {
             background-color: var(--accent-color);
@@ -337,6 +351,7 @@
     <script src="popup.js"></script>
 </body>
 </html>
+
 
 
 

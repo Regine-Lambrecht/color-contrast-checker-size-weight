@@ -47,6 +47,19 @@ document.addEventListener('DOMContentLoaded', () => {
     fontSizeSelect.addEventListener('change', showButton);
     fontWeightSelect.addEventListener('change', showButton);
 
+    // Add blur listeners to format 3-digit hex codes
+    const formatHexOnBlur = (e) => {
+        const formattedHex = formatHex(e.target.value);
+        e.target.value = formattedHex;
+        if (e.target.id === 'fg-color-text') {
+            fgColorPicker.value = formattedHex;
+        } else {
+            bgColorPicker.value = formattedHex;
+        }
+    };
+    fgColorText.addEventListener('blur', formatHexOnBlur);
+    bgColorText.addEventListener('blur', formatHexOnBlur);
+
 
     // --- Initial Setup ---
     updateFontSizeOptions();
@@ -119,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const isLargeText = (fontSizePx >= 24) || (fontSizePx >= 18.66 && fontWeight >= 700);
         const neededRatio = isLargeText ? 3.0 : 4.5;
-        neededRatioSpan.textContent = neededRatio;
+        neededRatioSpan.textContent = neededRatio.toFixed(2);
         
         aaTextTypeSpan.textContent = `(${isLargeText ? 'Large text' : 'Normal text'})`;
 
@@ -139,14 +152,12 @@ document.addEventListener('DOMContentLoaded', () => {
             checkStatusMessage.classList.add('fail');
             suggestionsContainer.style.display = 'flex';
             
-            // Hide all suggestions initially
             fontSuggestion.style.display = 'none';
             c1SuggestionWrapper.style.display = 'none';
             c2SuggestionWrapper.style.display = 'none';
 
             let firstSuggestionShown = false;
 
-            // Font suggestion logic
             const canPassAsLarge = ratio >= 3.0;
             if (!isLargeText && canPassAsLarge) {
                 fontSuggestion.style.display = 'flex';
@@ -156,7 +167,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 firstSuggestionShown = true;
             }
 
-            // Color suggestion logic
             const suggestedFg = findPassingColor(fgRgb, bgRgb, neededRatio);
             if (suggestedFg && suggestedFg.toLowerCase() !== fgColorHex.toLowerCase()) {
                 c1SuggestionWrapper.style.display = 'flex';
@@ -203,8 +213,20 @@ document.addEventListener('DOMContentLoaded', () => {
         return (lighter + 0.05) / (darker + 0.05);
     }
 
+    function formatHex(hex) {
+        const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+        if (shorthandRegex.test(hex)) {
+            return hex.replace(shorthandRegex, (m, r, g, b) => `#${r}${r}${g}${g}${b}${b}`);
+        }
+        if (/^#?[a-f\d]{6}$/i.test(hex) && !hex.startsWith('#')) {
+            return `#${hex}`;
+        }
+        return hex;
+    }
+    
     function hexToRgb(hex) {
-        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        const fullHex = formatHex(hex);
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(fullHex);
         return result ? {
             r: parseInt(result[1], 16),
             g: parseInt(result[2], 16),
@@ -260,15 +282,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function findPassingColor(colorToChange, otherColor, targetRatio) {
         const otherLuminance = getLuminance(otherColor);
         const colorHsl = rgbToHsl(colorToChange);
-        let direction = (otherLuminance > 0.5) ? -1 : 1; // -1 to darken, 1 to lighten
-
+        let direction = (otherLuminance > 0.5) ? -1 : 1; 
+    
         let min = 0, max = 1;
         if (direction === -1) { max = colorHsl.l; } 
         else { min = colorHsl.l; }
-
+    
         let bestPassingLightness = null;
-
-        // Binary search to find a lightness that passes the target
+    
         for (let i = 0; i < 30; i++) {
             let mid = (min + max) / 2;
             let currentHsl = { ...colorHsl, l: mid };
@@ -279,8 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (direction === 1) { min = mid; } else { max = mid; }
             }
         }
-        
-        // If search fails, try the other direction (for mid-grey otherColor)
+    
         if (bestPassingLightness === null) {
             direction *= -1;
             min = 0; max = 1;
@@ -296,32 +316,35 @@ document.addEventListener('DOMContentLoaded', () => {
                  }
             }
         }
-
+    
         if (bestPassingLightness === null) {
-            return null; // No solution found
+            return null;
         }
-
+    
         let finalHsl = { ...colorHsl, l: bestPassingLightness };
         
         // --- NEW ROBUSTNESS CHECK ---
-        // After finding the best candidate, check its *actual* unrounded ratio.
-        // If it's still below target due to floating point issues, nudge it until it passes.
+        // This is the most critical change. We check the UNROUNDED ratio.
         let finalRatio = getContrastRatio(hslToRgb(finalHsl), otherColor);
         let iterations = 0;
+        
+        // If the binary search result is extremely close but still fails, nudge it until it passes.
         while (finalRatio < targetRatio && iterations < 100) {
-            finalHsl.l += (direction * 0.0001); // Nudge lightness slightly
+            finalHsl.l += (direction * 0.0001); // A very small nudge
+            
+            // If we go out of bounds, no solution is possible in this direction.
             if (finalHsl.l < 0 || finalHsl.l > 1) {
-                return null; // Stop if we go out of bounds
+                return null;
             }
             finalRatio = getContrastRatio(hslToRgb(finalHsl), otherColor);
             iterations++;
         }
-
-        // If, after all that, it still fails, there is no valid solution.
+        
+        // Final check after nudging. If it still fails, no solution exists.
         if (finalRatio < targetRatio) {
             return null;
         }
-
+    
         return rgbToHex(hslToRgb(finalHsl));
     }
 });

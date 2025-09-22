@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const checkContrastBtn = document.getElementById('check-contrast-btn');
     const checkStatusMessage = document.getElementById('check-status-message');
     const resultsContainer = document.querySelector('.results-container');
+    const noTextCheckbox = document.getElementById('no-text-checkbox');
     
     // WCAG AA Result Elements
     const contrastRatioSpan = document.getElementById('contrast-ratio');
@@ -46,6 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     fontSizeSelect.addEventListener('change', showButton);
     fontWeightSelect.addEventListener('change', showButton);
+    noTextCheckbox.addEventListener('change', showButton);
 
     // Add blur listeners to format 3-digit hex codes
     const formatHexOnBlur = (e) => {
@@ -114,14 +116,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function checkContrast() {
         // Get inputs
-        let fontSize = parseFloat(fontSizeSelect.value);
-        const fontSizeUnit = document.querySelector('input[name="font-size-unit"]:checked').value;
-        const fontWeight = parseInt(fontWeightSelect.value, 10);
+        const isNonText = noTextCheckbox.checked;
         const fgColorHex = fgColorText.value;
         const bgColorHex = bgColorText.value;
         
-        let fontSizePx = (fontSizeUnit === 'pt') ? fontSize * 1.3333 : fontSize;
-
         const fgRgb = hexToRgb(fgColorHex);
         const bgRgb = hexToRgb(bgColorHex);
 
@@ -130,13 +128,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const ratio = getContrastRatio(fgRgb, bgRgb);
         contrastRatioSpan.textContent = ratio.toFixed(2);
 
-        const isLargeText = (fontSizePx >= 24) || (fontSizePx >= 18.66 && fontWeight >= 700);
-        const neededRatio = isLargeText ? 3.0 : 4.5;
-        neededRatioSpan.textContent = neededRatio.toFixed(2);
-        
-        aaTextTypeSpan.textContent = `(${isLargeText ? 'Large text' : 'Normal text'})`;
+        let neededRatio;
+        let aaPass;
+        let isLargeText = false;
 
-        const aaPass = ratio >= neededRatio;
+        if (isNonText) {
+            neededRatio = 3.0;
+            aaTextTypeSpan.textContent = `(Graphics/UI)`;
+        } else {
+            let fontSize = parseFloat(fontSizeSelect.value);
+            const fontSizeUnit = document.querySelector('input[name="font-size-unit"]:checked').value;
+            const fontWeight = parseInt(fontWeightSelect.value, 10);
+            let fontSizePx = (fontSizeUnit === 'pt') ? fontSize * 1.3333 : fontSize;
+            isLargeText = (fontSizePx >= 24) || (fontSizePx >= 18.66 && fontWeight >= 700);
+            neededRatio = isLargeText ? 3.0 : 4.5;
+            aaTextTypeSpan.textContent = `(${isLargeText ? 'Large text' : 'Normal text'})`;
+        }
+
+        neededRatioSpan.textContent = neededRatio.toFixed(2);
+        aaPass = ratio >= neededRatio;
         updateStatus(aaOverallStatusSpan, aaPass);
 
         checkContrastBtn.style.display = 'none';
@@ -159,8 +169,9 @@ document.addEventListener('DOMContentLoaded', () => {
             let firstSuggestionShown = false;
 
             const canPassAsLarge = ratio >= 3.0;
-            if (!isLargeText && canPassAsLarge) {
+            if (!isNonText && !isLargeText && canPassAsLarge) {
                 fontSuggestion.style.display = 'flex';
+                const fontSizeUnit = document.querySelector('input[name="font-size-unit"]:checked').value;
                 let suggestionText = `Enlarge text: min `;
                 suggestionText += (fontSizeUnit === 'pt') ? `14pt bold or 18pt non bold` : `18.66px bold or 24px non bold`;
                 fontSuggestionDetails.textContent = suggestionText;
@@ -323,16 +334,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
         let finalHsl = { ...colorHsl, l: bestPassingLightness };
         
-        // --- NEW ROBUSTNESS CHECK ---
-        // This is the most critical change. We check the UNROUNDED ratio.
         let finalRatio = getContrastRatio(hslToRgb(finalHsl), otherColor);
         let iterations = 0;
         
-        // If the binary search result is extremely close but still fails, nudge it until it passes.
         while (finalRatio < targetRatio && iterations < 100) {
-            finalHsl.l += (direction * 0.0001); // A very small nudge
-            
-            // If we go out of bounds, no solution is possible in this direction.
+            finalHsl.l += (direction * 0.0001);
             if (finalHsl.l < 0 || finalHsl.l > 1) {
                 return null;
             }
@@ -340,7 +346,6 @@ document.addEventListener('DOMContentLoaded', () => {
             iterations++;
         }
         
-        // Final check after nudging. If it still fails, no solution exists.
         if (finalRatio < targetRatio) {
             return null;
         }

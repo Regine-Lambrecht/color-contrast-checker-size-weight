@@ -36,11 +36,11 @@
             grid-template-columns: 1fr 1fr;
             gap: 16px;
             margin-bottom: 16px;
+            align-items: start; /* Aligns items to the top for consistency */
         }
         .input-group, fieldset {
             display: flex;
             flex-direction: column;
-            gap: 6px;
         }
         .input-group label, legend {
             font-weight: 500;
@@ -66,12 +66,16 @@
         }
         .font-fields-container {
             display: flex;
-            gap: 8px;
-            padding: 0; /* Override default padding */
+            padding: 4px; /* Add padding to the container */
+            overflow: hidden; 
+        }
+        .font-fields-container > * {
+           border: none; 
+           box-shadow: none;
+           background: transparent;
         }
         .font-fields-container > select {
-           border: none; /* Remove border from inner select */
-           box-shadow: none;
+            padding-left: 6px; /* Add space between toggle and select */
         }
         .color-input-wrapper {
             display: flex;
@@ -105,6 +109,7 @@
             border-radius: 6px;
             overflow: hidden;
             height: 100%;
+            margin-right: 6px; /* Added margin to create space */
         }
         .toggle-switch input[type="radio"] {
             display: none;
@@ -332,4 +337,10 @@
     <script src="popup.js"></script>
 </body>
 </html>
+
+
+
+
+
+
 

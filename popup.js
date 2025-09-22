@@ -268,33 +268,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let bestPassingLightness = null;
 
-        // Binary search to find a lightness that passes
+        // Binary search to find a lightness that passes the target
         for (let i = 0; i < 30; i++) {
             let mid = (min + max) / 2;
             let currentHsl = { ...colorHsl, l: mid };
             if (getContrastRatio(hslToRgb(currentHsl), otherColor) >= targetRatio) {
-                bestPassingLightness = mid; // This is a potential solution
-                if (direction === 1) { // If lightening, try to find a darker valid color
-                    max = mid;
-                } else { // If darkening, try to find a lighter valid color
-                    min = mid;
-                }
+                bestPassingLightness = mid;
+                if (direction === 1) { max = mid; } else { min = mid; }
             } else {
-                if (direction === 1) { // If lightening, need to be lighter
-                    min = mid;
-                } else { // If darkening, need to be darker
-                    max = mid;
-                }
+                if (direction === 1) { min = mid; } else { max = mid; }
             }
         }
         
+        // If search fails, try the other direction (for mid-grey otherColor)
         if (bestPassingLightness === null) {
-            // No solution found in the given direction. This can happen if the otherColor is mid-grey.
-            // Let's try searching in the OPPOSITE direction.
             direction *= -1;
             min = 0; max = 1;
             if (direction === -1) { max = colorHsl.l; } else { min = colorHsl.l; }
-
             for (let i = 0; i < 30; i++) {
                  let mid = (min + max) / 2;
                  let currentHsl = { ...colorHsl, l: mid };
@@ -308,22 +298,27 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (bestPassingLightness === null) {
-            return null; // No solution found at all
+            return null; // No solution found
         }
 
-        // Final check to ensure it robustly passes
         let finalHsl = { ...colorHsl, l: bestPassingLightness };
+        
+        // --- NEW ROBUSTNESS CHECK ---
+        // After finding the best candidate, check its *actual* unrounded ratio.
+        // If it's still below target due to floating point issues, nudge it until it passes.
+        let finalRatio = getContrastRatio(hslToRgb(finalHsl), otherColor);
         let iterations = 0;
-        while (getContrastRatio(hslToRgb(finalHsl), otherColor) < targetRatio && iterations < 100) {
-            finalHsl.l += (direction * 0.0001);
-            if (finalHsl.l < 0 || finalHsl.l > 1) break;
+        while (finalRatio < targetRatio && iterations < 100) {
+            finalHsl.l += (direction * 0.0001); // Nudge lightness slightly
+            if (finalHsl.l < 0 || finalHsl.l > 1) {
+                return null; // Stop if we go out of bounds
+            }
+            finalRatio = getContrastRatio(hslToRgb(finalHsl), otherColor);
             iterations++;
         }
 
-        finalHsl.l = Math.max(0, Math.min(1, finalHsl.l));
-        
-        // Final final check. If it still fails, no solution is possible.
-        if (getContrastRatio(hslToRgb(finalHsl), otherColor) < targetRatio) {
+        // If, after all that, it still fails, there is no valid solution.
+        if (finalRatio < targetRatio) {
             return null;
         }
 

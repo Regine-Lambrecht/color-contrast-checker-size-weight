@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Color Contrast Checker</title>
+    <title>Colour Contrast Checker</title>
     <style>
         :root {
             --bg-color: #f4f6f8;
@@ -47,6 +46,7 @@
             font-weight: 500;
             color: var(--text-secondary);
             font-size: 13px;
+            margin-bottom: 6px;
         }
         fieldset {
             border: none;
@@ -106,11 +106,9 @@
         /* New Toggle Switch Styles */
         .toggle-switch {
             display: flex;
-            /* border: 1px solid var(--border-color); */
             border-radius: 6px;
             overflow: hidden;
             height: 100%;
-            margin-right: 6px; /* Added margin to create space */
         }
         .toggle-switch input[type="radio"] {
             position: absolute;
@@ -152,8 +150,18 @@
             border-radius: 5px;
             margin: -1px;
         }
-        .toggle-switch label:not(:last-of-type) {
-            border-right: 1px solid var(--border-color);
+        .checkbox-wrapper {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: -8px; /* Adjust spacing */
+        }
+        .checkbox-wrapper label {
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
         }
         #check-contrast-btn, #check-status-message {
             width: 100%;
@@ -265,7 +273,7 @@
     </style>
 </head>
 <body>
-    <h1>Color Contrast Checker</h1>
+    <h1>Colour Contrast Checker</h1>
 
     <div class="input-grid">
         <fieldset>
@@ -288,6 +296,12 @@
                 <option value="700">≥ 700 (bold)</option>
             </select>
         </div>
+
+        <div class="checkbox-wrapper">
+            <input type="checkbox" id="no-text-checkbox">
+            <label for="no-text-checkbox">There is no text</label>
+        </div>
+
         <fieldset>
             <legend>Colour 1</legend>
             <div class="color-input-wrapper">
@@ -351,11 +365,4 @@
     <script src="popup.js"></script>
 </body>
 </html>
-
-
-
-
-
-
-
 

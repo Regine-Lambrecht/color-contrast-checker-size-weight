@@ -97,6 +97,8 @@ legend {
     padding: 0 8px 0 8px;
     font-family: monospace;
     box-sizing: border-box;
+    /* NEW: Add padding to make room for the eyedropper button */
+    padding-right: 44px;
 }
 .color-input-wrapper input[type="text"]:focus {
     outline: none;
@@ -265,35 +267,36 @@ legend {
 }
 .suggestion-details {
     margin-bottom: 6px;
-    /* --- NEW STYLES for click-to-copy --- */
-    display: flex; /* Use flexbox for alignment */
-    justify-content: space-between; /* Push icon to the right */
-    align-items: center; /* Vertically align text and icon */
+    /* --- Click-to-copy styles --- */
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
     cursor: pointer;
 }
-.suggestion-details:hover .suggestion-hex {
+.suggestion-details:hover .suggestion-hex,
+.suggestion-details:hover .suggestion-alpha { /* NEW: Hover effect for alpha */
     text-decoration: underline;
 }
-/* --- NEW: Focus style for keyboard --- */
+/* --- Focus style for keyboard --- */
 .suggestion-details:focus-visible {
     outline: 2px solid var(--accent-color);
     outline-offset: 2px;
     border-radius: 4px;
 }
 .copy-icon {
-    /* Using Font Awesome defaults, adjust size/color if needed */
-    font-size: 14px; /* Slightly smaller than text */
+    font-size: 14px; 
     color: var(--text-secondary);
-    margin-left: 8px; /* Space between text and icon */
-    flex-shrink: 0; /* Don't shrink the icon */
-    transition: color 0.2s; /* Smooth hover effect */
+    margin-left: 8px; 
+    flex-shrink: 0; 
+    transition: color 0.2s; 
 }
 .suggestion-details:hover .copy-icon {
-    color: var(--accent-color); /* Highlight on hover */
+    color: var(--accent-color); 
 }
-/* --- End of new styles --- */
+/* --- End of click-to-copy styles --- */
 
-.suggestion-hex {
+.suggestion-hex,
+.suggestion-alpha { /* NEW: Alpha value style */
     font-family: monospace;
     font-weight: 600;
 }
@@ -323,8 +326,35 @@ footer a:hover {
     text-decoration: underline;
 }
 
-/* --- HIDE ALPHA SLIDER FOR COLOUR 2 (This is the rule you wanted) --- */
-/* This class is added by popup.js when the bg-color input is clicked */
+/* --- HIDE ALPHA SLIDER FOR COLOUR 2 --- */
 body.bg-picker-active .clr-alpha {
     display: none;
+}
+
+/* --- Eyedropper Button Styles --- */
+.eyedropper-btn {
+    position: absolute;
+    right: 35px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background: var(--surface-color);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+.eyedropper-btn:hover {
+    color: var(--accent-color);
+    border-color: var(--accent-color);
+}
+.eyedropper-btn:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
 }

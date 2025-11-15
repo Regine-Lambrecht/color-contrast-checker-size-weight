@@ -5,9 +5,10 @@ document.addEventListener('DOMContentLoaded', () => {
         themeMode: 'light',
         alpha: true,
         swatches: [],
-        format: 'auto', // MODIFIED: Format will now match the user's current mode
+        format: 'auto', // Format will now match the user's current mode
         formatToggle: true,
         onChange: (color, input) => {
+            // This onChange handles changes *from* the Coloris picker itself
             input.value = color;
             checkContrast(fgColorText.value, bgColorText.value);
         }
@@ -40,6 +41,17 @@ document.addEventListener('DOMContentLoaded', () => {
     let c2SuggestionHslRatio = document.getElementById('c2-suggestion-hsl-ratio');
     let c2SuggestionRgbRatio = document.getElementById('c2-suggestion-rgb-ratio');
 
+    // --- Alpha Suggestion Elements ---
+    let alphaSuggestionWrapper = document.getElementById('alpha-suggestion-wrapper');
+    let alphaSuggestionSwatch = document.getElementById('suggestion-alpha-swatch');
+    let alphaSuggestionDetails = document.getElementById('alpha-suggestion-details');
+    let alphaSuggestionRatio = document.getElementById('alpha-suggestion-ratio');
+
+
+    // --- Eyedropper Button Elements ---
+    const fgEyedropperBtn = document.getElementById('fg-eyedropper-btn');
+    const bgEyedropperBtn = document.getElementById('bg-eyedropper-btn');
+
     // --- Add class on click to hide/show slider ---
     fgColorText.addEventListener('mousedown', () => {
         document.body.classList.remove('bg-picker-active');
@@ -63,27 +75,74 @@ document.addEventListener('DOMContentLoaded', () => {
     fontWeightSelect.addEventListener('change', triggerCheck);
     noTextCheckbox.addEventListener('change', triggerCheck);
 
+    // Add input listener to color fields to trigger check on manual input/paste/eyedropper
+    fgColorText.addEventListener('input', triggerCheck);
+    bgColorText.addEventListener('input', triggerCheck);
+
     const formatHexOnBlur = (e) => {
-        // MODIFIED: Don't format if it's not a hex value
+        // Don't format if it's not a hex value
         if (e.target.value.startsWith('rgb') || e.target.value.startsWith('hsl')) {
+            // Still trigger check in case it's a valid non-hex value pasted
             triggerCheck();
             return;
         }
         const formattedHex = formatHex(e.target.value);
-        e.target.value = formattedHex;
-        triggerCheck();
+        if (formattedHex !== e.target.value) { // Only update if formatting changed something
+             e.target.value = formattedHex;
+             // Dispatch input event again IF value changed, so Coloris updates swatch
+             e.target.dispatchEvent(new Event('input', { bubbles: true }));
+        } else {
+            // If format didn't change, still trigger check (e.g., if user typed #abcdef)
+            triggerCheck();
+        }
     };
     fgColorText.addEventListener('blur', formatHexOnBlur);
     bgColorText.addEventListener('blur', formatHexOnBlur);
 
+
+    // --- Eyedropper Event Listeners ---
+    fgEyedropperBtn.addEventListener('click', () => {
+        pickColor(fgColorText);
+    });
+
+    bgEyedropperBtn.addEventListener('click', () => {
+        pickColor(bgColorText);
+    });
+
     // --- Initial Setup ---
     updateFontSizeOptions();
-    // MODIFIED: Set default values before first check
+    // Set default values before first check
     fgColorText.value = '#5a6474';
     bgColorText.value = '#ffffff';
-    triggerCheck();
+    // Manually update Coloris swatches after setting initial values
+    Coloris.update(true); 
+    triggerCheck(); // Initial contrast check
 
     // --- Main Functions ---
+
+    // --- Eyedropper Function ---
+    async function pickColor(inputElement) {
+        if (!window.EyeDropper) {
+            console.log('Your browser does not support the EyeDropper API');
+            return;
+        }
+
+        const eyeDropper = new EyeDropper();
+        
+        try {
+            const result = await eyeDropper.open();
+            inputElement.value = result.sRGBHex;
+            
+            // --- ONLY CHANGE IS HERE ---
+            // Dispatch an 'input' event to notify Coloris (and triggerCheck via its listener)
+            inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+            // --- END OF CHANGE ---
+
+        } catch (e) {
+            console.log('EyeDropper was canceled.'); // User likely pressed Escape
+        }
+    }
+
     function updateFontSizeOptions() {
         const unit = document.querySelector('input[name="font-size-unit"]:checked').value;
         const currentVal = fontSizeSelect.value;
@@ -123,12 +182,12 @@ document.addEventListener('DOMContentLoaded', () => {
         fontSizeSelect.value = potentialOption ? currentVal : defaultValue;
     }
     
-    // MODIFIED: checkContrast now handles alpha
+    // MODIFIED: checkContrast logic for suggestions
     function checkContrast(fgColor, bgColor) {
         const isNonText = noTextCheckbox.checked;
         
-        const fgParsed = parseColorToRgb(fgColor);
-        const bgParsed = parseColorToRgb(bgColor);
+        const fgParsed = parseColorToRgb(fgColor); // Parsed Colour 1 (includes 'a')
+        const bgParsed = parseColorToRgb(bgColor); // Parsed Colour 2 (includes 'a')
 
         if (!fgParsed || !bgParsed) {
             suggestionsContainer.style.display = 'none';
@@ -140,11 +199,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        // --- NEW: Alpha Handling ---
-        let fgRgb, bgRgb;
+        // --- Alpha Handling ---
+        let fgRgb, bgRgb; // These will hold the *final* opaque colors used for calculation
         
         if (bgParsed.a < 1) {
-            // Cannot calculate contrast with a transparent background
             suggestionsContainer.style.display = 'none';
             contrastRatioSpan.textContent = 'N/A';
             neededRatioSpan.textContent = '-';
@@ -153,14 +211,13 @@ document.addEventListener('DOMContentLoaded', () => {
             aaTextTypeSpan.textContent = '(BG must be opaque)';
             return;
         } else {
-            bgRgb = bgParsed; // bg is opaque, good to go.
+            bgRgb = bgParsed; // bg is opaque, use as is.
         }
 
         if (fgParsed.a < 1) {
-            // Flatten foreground against the opaque background
-            fgRgb = flattenColor(fgParsed, bgRgb);
+            fgRgb = flattenColor(fgParsed, bgRgb); // Flatten fg onto bg
         } else {
-            fgRgb = fgParsed; // fg is opaque, good to go.
+            fgRgb = fgParsed; // fg is opaque, use as is.
         }
         // --- END: Alpha Handling ---
 
@@ -193,11 +250,16 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             suggestionsContainer.style.display = 'flex';
             
-            // --- NEW: Clear old listeners by replacing nodes ---
+            // --- Clear old listeners by replacing nodes ---
+            alphaSuggestionWrapper.replaceWith(alphaSuggestionWrapper.cloneNode(true)); // NEW
             c1SuggestionWrapper.replaceWith(c1SuggestionWrapper.cloneNode(true));
             c2SuggestionWrapper.replaceWith(c2SuggestionWrapper.cloneNode(true));
             
-            // --- NEW: Re-select the new nodes ---
+            // --- Re-select the new nodes ---
+            alphaSuggestionWrapper = document.getElementById('alpha-suggestion-wrapper'); // NEW
+            alphaSuggestionSwatch = document.getElementById('suggestion-alpha-swatch'); // NEW
+            alphaSuggestionDetails = document.getElementById('alpha-suggestion-details'); // NEW
+            alphaSuggestionRatio = document.getElementById('alpha-suggestion-ratio'); // NEW
             c1SuggestionWrapper = document.getElementById('c1-suggestion-wrapper');
             c1SuggestionSwatch = document.getElementById('suggestion-c1-swatch');
             c1SuggestionDetails = document.getElementById('c1-suggestion-details');
@@ -208,9 +270,10 @@ document.addEventListener('DOMContentLoaded', () => {
             c2SuggestionDetails = document.getElementById('c2-suggestion-details');
             c2SuggestionHslRatio = document.getElementById('c2-suggestion-hsl-ratio');
             c2SuggestionRgbRatio = document.getElementById('c2-suggestion-rgb-ratio');
-            // --- End of new re-selection ---
+            // --- End of re-selection ---
 
             fontSuggestion.style.display = 'none';
+            alphaSuggestionWrapper.style.display = 'none'; // NEW
             c1SuggestionWrapper.style.display = 'none';
             c2SuggestionWrapper.style.display = 'none';
 
@@ -231,58 +294,121 @@ document.addEventListener('DOMContentLoaded', () => {
             // --- Define the Font Awesome icon HTML ---
             const copyIconSvg = `<i class="copy-icon fa-solid fa-copy" aria-hidden="true"></i>`;
 
-            const suggestedFgResult = findPassingColor(fgRgb, bgRgb, neededRatio);
-            if (suggestedFgResult && suggestedFgResult.hex.toLowerCase() !== rgbToHex(fgRgb).toLowerCase()) {
-                c1SuggestionWrapper.style.display = 'flex';
-                c1SuggestionSwatch.style.backgroundColor = suggestedFgResult.hex;
-
-                const prefix = firstSuggestionShown ? 'Or replace' : 'Replace';
-                // MODIFIED: Add text span and icon
-                c1SuggestionDetails.innerHTML = `<span class="suggestion-text">${prefix} Colour 1 with <span class="suggestion-hex">${suggestedFgResult.hex}</span></span>${copyIconSvg}`;
-
-                // --- NEW: Add Accessibility & Click Listeners ---
-                c1SuggestionDetails.setAttribute('role', 'button');
-                c1SuggestionDetails.setAttribute('tabindex', '0');
-                const copyFunc1 = () => copyToClipboard(suggestedFgResult.hex, c1SuggestionDetails);
-                c1SuggestionDetails.addEventListener('click', copyFunc1);
-                c1SuggestionDetails.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault(); // Stop spacebar from scrolling
-                        copyFunc1();
+            // --- MODIFIED: Alpha Suggestion Logic ---
+            let alphaSuggestionMade = false;
+            // Use fgParsed here, which has the original alpha
+            if (fgParsed.a < 1) { 
+                const requiredAlphaResult = findPassingAlpha(fgParsed, bgRgb, neededRatio); // Now returns object
+                if (requiredAlphaResult && requiredAlphaResult.alpha > fgParsed.a) { // Only suggest if alpha needs to increase
+                    alphaSuggestionWrapper.style.display = 'flex';
+                    const requiredAlpha = requiredAlphaResult.alpha;
+                    const finalFlatColor = requiredAlphaResult.finalFlatColor; // Use color from result
+                    alphaSuggestionSwatch.style.backgroundColor = rgbToHex(finalFlatColor); // Show the *result*
+                    
+                    // --- Determine format and create suggested string ---
+                    let suggestedColorString = '';
+                    let suggestedValueDisplay = '';
+                    const currentFgValue = fgColorText.value.trim();
+                    const alphaString = requiredAlpha.toFixed(3); // Use 3 decimal places
+                    
+                    if (currentFgValue.startsWith('rgb')) {
+                        suggestedColorString = `rgba(${fgParsed.r}, ${fgParsed.g}, ${fgParsed.b}, ${alphaString})`;
+                        suggestedValueDisplay = suggestedColorString;
+                    } else if (currentFgValue.startsWith('hsl')) {
+                        suggestedColorString = rgbToHslaString(fgParsed, requiredAlpha); // Use new helper
+                        suggestedValueDisplay = suggestedColorString;
+                    } else { // Assume hex
+                        suggestedColorString = rgbToHexWithAlpha(fgParsed, requiredAlpha); // Use new helper
+                        suggestedValueDisplay = suggestedColorString;
                     }
-                });
-                // --- End of new listeners ---
+                    // --- END: Determine format ---
 
-                const finalRatio = getContrastRatio(parseColorToRgb(suggestedFgResult.hex), bgRgb);
-                c1SuggestionHslRatio.textContent = `HSL true ratio: ${suggestedFgResult.perfectRatio.toFixed(2)}`;
-                c1SuggestionRgbRatio.textContent = `(RGB converted ratio: ${finalRatio.toFixed(2)})`;
+                    const prefix = firstSuggestionShown ? 'Or change' : 'Change';
+                    // MODIFIED: Display the full suggested color value
+                    alphaSuggestionDetails.innerHTML = `<span class="suggestion-text">${prefix} Colour 1 to <span class="suggestion-alpha">${suggestedValueDisplay}</span></span>${copyIconSvg}`;
 
-                firstSuggestionShown = true;
+                    // Add accessibility & click listeners for alpha suggestion
+                    alphaSuggestionDetails.setAttribute('role', 'button');
+                    alphaSuggestionDetails.setAttribute('tabindex', '0');
+                    const copyAlphaFunc = () => copyToClipboard(suggestedColorString, alphaSuggestionDetails); // Copy the formatted string
+                    alphaSuggestionDetails.addEventListener('click', copyAlphaFunc);
+                    alphaSuggestionDetails.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            copyAlphaFunc();
+                        }
+                    });
+
+                    // Use the ratio from the result
+                    alphaSuggestionRatio.textContent = `(Final ratio: ${requiredAlphaResult.finalRatio.toFixed(2)})`;
+                    
+                    firstSuggestionShown = true;
+                    alphaSuggestionMade = true;
+                }
+            }
+            // --- END: Alpha Suggestion Logic ---
+
+
+            // --- MODIFIED: Color Suggestion 1 (Foreground) ---
+            // Only suggest changing hex if alpha wasn't suggested
+            if (!alphaSuggestionMade) { 
+                const suggestedFgResult = findPassingColor(fgRgb, bgRgb, neededRatio); // Uses potentially flattened fgRgb
+                // Compare with original fgParsed hex equivalent, or fgRgb if it was already opaque
+                const originalOpaqueHex = rgbToHex(fgParsed.a === 1 ? fgParsed : fgRgb); 
+                
+                if (suggestedFgResult && suggestedFgResult.hex.toLowerCase() !== originalOpaqueHex.toLowerCase()) {
+                    c1SuggestionWrapper.style.display = 'flex';
+                    c1SuggestionSwatch.style.backgroundColor = suggestedFgResult.hex;
+
+                    const prefix = firstSuggestionShown ? 'Or replace' : 'Replace';
+                    c1SuggestionDetails.innerHTML = `<span class="suggestion-text">${prefix} Colour 1 with <span class="suggestion-hex">${suggestedFgResult.hex}</span></span>${copyIconSvg}`;
+
+                    // Add Accessibility & Click Listeners
+                    c1SuggestionDetails.setAttribute('role', 'button');
+                    c1SuggestionDetails.setAttribute('tabindex', '0');
+                    const copyFunc1 = () => copyToClipboard(suggestedFgResult.hex, c1SuggestionDetails);
+                    c1SuggestionDetails.addEventListener('click', copyFunc1);
+                    c1SuggestionDetails.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault(); 
+                            copyFunc1();
+                        }
+                    });
+
+                    // Parse the suggestion *without* alpha for ratio calculation
+                    const suggestedFgOpaqueParsed = parseColorToRgb(suggestedFgResult.hex);
+                    const finalRatio = getContrastRatio(suggestedFgOpaqueParsed, bgRgb);
+                    c1SuggestionHslRatio.textContent = `HSL true ratio: ${suggestedFgResult.perfectRatio.toFixed(2)}`;
+                    c1SuggestionRgbRatio.textContent = `(RGB converted ratio: ${finalRatio.toFixed(2)})`;
+
+                    firstSuggestionShown = true;
+                }
             }
 
-            const suggestedBgResult = findPassingColor(bgRgb, fgRgb, neededRatio);
+            // --- Color Suggestion 2 (Background - UNCHANGED logic, just added A11y) ---
+            const suggestedBgResult = findPassingColor(bgRgb, fgRgb, neededRatio); // Use bgRgb (always opaque) and fgRgb (flattened if needed)
             if (suggestedBgResult && suggestedBgResult.hex.toLowerCase() !== rgbToHex(bgRgb).toLowerCase()) {
                 c2SuggestionWrapper.style.display = 'flex';
                 c2SuggestionSwatch.style.backgroundColor = suggestedBgResult.hex;
 
                 const prefix = firstSuggestionShown ? 'Or replace' : 'Replace';
-                // MODIFIED: Add text span and icon
                 c2SuggestionDetails.innerHTML = `<span class="suggestion-text">${prefix} Colour 2 with <span class="suggestion-hex">${suggestedBgResult.hex}</span></span>${copyIconSvg}`;
                 
-                // --- NEW: Add Accessibility & Click Listeners ---
+                // Add Accessibility & Click Listeners
                 c2SuggestionDetails.setAttribute('role', 'button');
                 c2SuggestionDetails.setAttribute('tabindex', '0');
                 const copyFunc2 = () => copyToClipboard(suggestedBgResult.hex, c2SuggestionDetails);
                 c2SuggestionDetails.addEventListener('click', copyFunc2);
                 c2SuggestionDetails.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault(); // Stop spacebar from scrolling
+                        e.preventDefault(); 
                         copyFunc2();
                     }
                 });
-                // --- End of new listeners ---
 
-                const finalRatio = getContrastRatio(fgRgb, parseColorToRgb(suggestedBgResult.hex));
+                // Parse suggestion *without* alpha
+                const suggestedBgOpaqueParsed = parseColorToRgb(suggestedBgResult.hex);
+                const finalRatio = getContrastRatio(fgRgb, suggestedBgOpaqueParsed);
                 c2SuggestionHslRatio.textContent = `HSL true ratio: ${suggestedBgResult.perfectRatio.toFixed(2)}`;
                 c2SuggestionRgbRatio.textContent = `(RGB converted ratio: ${finalRatio.toFixed(2)})`;
             }
@@ -402,7 +528,10 @@ document.addEventListener('DOMContentLoaded', () => {
         element.classList.add('copy-busy'); // NEW state
         
         const textSpan = element.querySelector('.suggestion-text'); // Find the text span
-        if (!textSpan) return; // Safety check
+        if (!textSpan) { // Safety check
+            element.classList.remove('copy-busy');
+            return; 
+        }
 
         const originalTextHTML = textSpan.innerHTML; // Store original HTML
         
@@ -436,6 +565,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }).join('');
     }
 
+    // --- NEW: Helper to convert RGB object + alpha to #RRGGBBAA hex string ---
+    function rgbToHexWithAlpha(rgb, alpha) {
+        const rHex = rgb.r.toString(16).padStart(2, '0');
+        const gHex = rgb.g.toString(16).padStart(2, '0');
+        const bHex = rgb.b.toString(16).padStart(2, '0');
+        const aHex = Math.round(alpha * 255).toString(16).padStart(2, '0');
+        return `#${rHex}${gHex}${bHex}${aHex}`;
+    }
+
     function rgbToHsl(rgb) {
         if (!rgb) return { h: 0, s: 0, l: 0 };
         let { r, g, b } = rgb; r /= 255; g /= 255; b /= 255;
@@ -454,6 +592,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return { h, s, l };
     }
+
+     // --- NEW: Helper to convert RGB object + alpha to hsla() string ---
+     function rgbToHslaString(rgb, alpha) {
+         const hsl = rgbToHsl(rgb);
+         const h = Math.round(hsl.h * 360);
+         const s = Math.round(hsl.s * 100);
+         const l = Math.round(hsl.l * 100);
+         // Use toFixed(3) for alpha for better precision in the string
+         return `hsla(${h}, ${s}%, ${l}%, ${alpha.toFixed(3)})`; 
+     }
 
     function hslToRgb(hsl) {
         let { h, s, l } = hsl; let r, g, b;
@@ -475,10 +623,15 @@ document.addEventListener('DOMContentLoaded', () => {
         return { r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255) };
     }
     
+    // --- Suggestion Algorithm (Lightness) ---
     function findPassingColor(colorToChange, otherColor, targetRatio) {
+        // This is the opaque color object {r, g, b}
         const otherLuminance = getLuminance(otherColor);
-        const colorHsl = rgbToHsl(colorToChange);
-        let direction = (otherLuminance > 0.5) ? -1 : 1;
+        // This is the {r, g, b} of the color we might change (could be flattened)
+        const currentRgb = colorToChange; 
+        const colorHsl = rgbToHsl(currentRgb);
+        
+        let direction = (otherLuminance > 0.5) ? -1 : 1; // -1 = darker, 1 = lighter
     
         let min = 0, max = 1;
         if (direction === -1) { max = colorHsl.l; } 
@@ -486,10 +639,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
         let bestPassingLightness = null;
     
+        // Binary search for lightness
         for (let i = 0; i < 30; i++) {
             let mid = (min + max) / 2;
-            let currentHsl = { ...colorHsl, l: mid };
-            if (getContrastRatio(hslToRgb(currentHsl), otherColor) >= targetRatio) {
+            let currentTestRgb = hslToRgb({ ...colorHsl, l: mid });
+            if (getContrastRatio(currentTestRgb, otherColor) >= targetRatio) {
                 bestPassingLightness = mid;
                 if (direction === 1) { max = mid; } else { min = mid; }
             } else {
@@ -497,14 +651,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     
+        // Try opposite direction if needed
         if (bestPassingLightness === null) {
             direction *= -1;
             min = 0; max = 1;
             if (direction === -1) { max = colorHsl.l; } else { min = colorHsl.l; }
             for (let i = 0; i < 30; i++) {
                  let mid = (min + max) / 2;
-                 let currentHsl = { ...colorHsl, l: mid };
-                 if (getContrastRatio(hslToRgb(currentHsl), otherColor) >= targetRatio) {
+                 let currentTestRgb = hslToRgb({ ...colorHsl, l: mid });
+                 if (getContrastRatio(currentTestRgb, otherColor) >= targetRatio) {
                      bestPassingLightness = mid;
                      if (direction === 1) { max = mid; } else { min = mid; }
                  } else {
@@ -513,31 +668,98 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     
-        if (bestPassingLightness === null) {
-            return null;
-        }
+        if (bestPassingLightness === null) return null;
     
+        // Nudge slightly past the target ratio
         let finalHsl = { ...colorHsl, l: bestPassingLightness };
-        
         let finalRatio = getContrastRatio(hslToRgb(finalHsl), otherColor);
         let iterations = 0;
-        
         while (finalRatio < targetRatio && iterations < 100) {
             finalHsl.l += (direction * 0.0001);
-            if (finalHsl.l < 0 || finalHsl.l > 1) {
-                return null;
-            }
+            finalHsl.l = Math.max(0, Math.min(1, finalHsl.l)); // Clamp between 0 and 1
             finalRatio = getContrastRatio(hslToRgb(finalHsl), otherColor);
             iterations++;
+             if(finalHsl.l === 0 || finalHsl.l === 1) break; // Stop if we hit black/white
         }
         
-        if (finalRatio < targetRatio) {
-            return null;
-        }
+        if (finalRatio < targetRatio) return null; // Still couldn't pass
         
-        const perfectRatio = getContrastRatio(hslToRgb(finalHsl), otherColor);
         const finalHex = rgbToHex(hslToRgb(finalHsl));
+        return { hex: finalHex, perfectRatio: finalRatio };
+    }
 
-        return { hex: finalHex, perfectRatio: perfectRatio };
+    // --- MODIFIED Suggestion Algorithm (Alpha) ---
+    function findPassingAlpha(fgColorParsed, bgColorOpaque, targetRatio) {
+        let minAlpha = fgColorParsed.a; // Start from current alpha
+        let maxAlpha = 1.0;
+        let bestPassingAlpha = null;
+        let finalRatio = 0;
+        let finalFlatColor = null;
+
+        // Binary search: Find an alpha that passes
+        for (let i = 0; i < 30; i++) {
+            let midAlpha = (minAlpha + maxAlpha) / 2;
+            let currentFg = { ...fgColorParsed, a: midAlpha };
+            let flattenedColor = flattenColor(currentFg, bgColorOpaque);
+            
+            if (getContrastRatio(flattenedColor, bgColorOpaque) >= targetRatio) {
+                bestPassingAlpha = midAlpha;
+                finalRatio = getContrastRatio(flattenedColor, bgColorOpaque); // Store ratio
+                finalFlatColor = flattenedColor; // Store color
+                maxAlpha = midAlpha; // Found a passing alpha, try lower values (closer to original)
+            } else {
+                minAlpha = midAlpha; // Need higher alpha
+            }
+        }
+
+        // If binary search didn't find *any* passing value (even alpha=1), return null
+        if (bestPassingAlpha === null) {
+             // Check one last time at alpha=1 just in case
+             let checkFullOpacity = flattenColor({ ...fgColorParsed, a: 1.0 }, bgColorOpaque);
+             if (getContrastRatio(checkFullOpacity, bgColorOpaque) >= targetRatio) {
+                 return { alpha: 1.0, finalRatio: getContrastRatio(checkFullOpacity, bgColorOpaque), finalFlatColor: checkFullOpacity };
+             }
+             return null;
+        }
+
+        // Refine: Now search *downwards* from bestPassingAlpha to find the minimum passing alpha
+        minAlpha = fgColorParsed.a; // Reset lower bound
+        maxAlpha = bestPassingAlpha; // Upper bound is the passing alpha we found
+        
+        for (let i = 0; i < 30; i++) { // More iterations for refinement
+            let midAlpha = (minAlpha + maxAlpha) / 2;
+            let currentFg = { ...fgColorParsed, a: midAlpha };
+            let flattenedColor = flattenColor(currentFg, bgColorOpaque);
+            let currentRatio = getContrastRatio(flattenedColor, bgColorOpaque);
+
+            if (currentRatio >= targetRatio) {
+                 // It passes, try even lower alpha
+                 bestPassingAlpha = midAlpha; 
+                 finalRatio = currentRatio;
+                 finalFlatColor = flattenedColor;
+                 maxAlpha = midAlpha;
+            } else {
+                 // It fails, need higher alpha
+                 minAlpha = midAlpha;
+            }
+        }
+
+        // Ensure the final selected alpha actually passes (due to floating point)
+        // If not, nudge slightly upwards
+        let finalAlpha = bestPassingAlpha;
+        let iterations = 0;
+        while(getContrastRatio(flattenColor({ ...fgColorParsed, a: finalAlpha }, bgColorOpaque), bgColorOpaque) < targetRatio && iterations < 100) {
+            finalAlpha += 0.0001; // Small nudge up
+            finalAlpha = Math.min(1, finalAlpha); // Clamp at 1
+            iterations++;
+            if (finalAlpha === 1) break;
+        }
+
+        // Recalculate final values based on the potentially nudged alpha
+        finalFlatColor = flattenColor({ ...fgColorParsed, a: finalAlpha }, bgColorOpaque);
+        finalRatio = getContrastRatio(finalFlatColor, bgColorOpaque);
+
+        // Return the refined alpha, ratio, and resulting color
+        return { alpha: finalAlpha, finalRatio: finalRatio, finalFlatColor: finalFlatColor };
     }
 });

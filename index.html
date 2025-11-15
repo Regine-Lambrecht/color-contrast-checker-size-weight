@@ -1,38 +1,119 @@
-{
-    "manifest_version": 3,
-    "name": "Colour Contrast Checker",
-    "version": "1.0",
-    "description": "A tool to check colour contrast based on WCAG standards.",
-    "permissions": [
-        "sidePanel",
-        "clipboardWrite"
-    ],
-    "side_panel": {
-        "default_path": "popup.html"
-    },
-    "background": {
-        "service_worker": "background.js"
-    },
-    "action": {
-        "default_icon": {
-            "16": "icons/icon16.png",
-            "48": "icons/icon48.png",
-            "128": "icons/icon128.png"
-        }
-    },
-    "icons": {
-        "16": "icons/icon16.png",
-        "48": "icons/icon48.png",
-        "128": "icons/icon128.png"
-    },
-    "web_accessible_resources": [
-        {
-            "resources": [
-                "images/banner.png"
-            ],
-            "matches": [
-                "<all_urls>"
-            ]
-        }
-    ]
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Colour Contrast Checker</title>
+    <link rel="stylesheet" href="popup.css?v=2">
+    <link rel="stylesheet" href="lib/coloris.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+</head>
+<body>
+    <img src="images/banner.png" alt="Eleven Ways banner" class="banner">
+    
+    <main>
+        <h1>Colour Contrast Checker</h1>
+
+        <div class="input-grid">
+            <fieldset>
+                <legend>Font size</legend>
+                <div class="font-fields-container">
+                     <div class="toggle-switch">
+                        <input type="radio" id="unit-px" name="font-size-unit" value="px" checked>
+                        <label for="unit-px">px</label>
+                        <input type="radio" id="unit-pt" name="font-size-unit" value="pt">
+                        <label for="unit-pt">pt</label>
+                    </div>
+                    <label for="font-size" class="sr-only">Font size value</label>
+                    <select id="font-size" style="flex-grow: 1;"></select>
+                </div>
+            </fieldset>
+            <div class="input-group">
+                <label for="font-weight">Font weight</label>
+                <select id="font-weight">
+                    <option value="400">&lt; 700 (non bold)</option>
+                    <option value="700">≥ 700 (bold)</option>
+                </select>
+            </div>
+
+            <div class="checkbox-wrapper">
+                <input type="checkbox" id="no-text-checkbox">
+                <label for="no-text-checkbox">There is no text</label>
+            </div>
+
+            <div class="input-group">
+                <label for="fg-color-text">Colour 1</label>
+                <div class="color-input-wrapper">
+                    <input type="text" id="fg-color-text" value="#000000" maxlength="9" data-coloris>
+                    <button id="fg-eyedropper-btn" class="eyedropper-btn" type="button" title="Pick color from screen">
+                        <i class="fa-solid fa-eye-dropper" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="input-group">
+                <label for="bg-color-text">Colour 2</label>
+                <div class="color-input-wrapper">
+                    <input type="text" id="bg-color-text" value="#FFFFFF" maxlength="9" data-coloris>
+                    <button id="bg-eyedropper-btn" class="eyedropper-btn" type="button" title="Pick color from screen">
+                        <i class="fa-solid fa-eye-dropper" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="results-container">
+             <div class="result-row">
+                <span class="result-label">Current ratio:</span>
+                <span class="result-value" id="contrast-ratio"></span>
+            </div>
+             <div class="result-row">
+                <span class="result-label">Needed ratio:</span>
+                <span class="result-value" id="needed-ratio"></span>
+            </div>
+            <div class="result-row">
+                <span class="result-label">WCAG AA <span id="aa-text-type"></span></span>
+                <span class="status" id="aa-overall-status"></span>
+            </div>
+        </div>
+
+        <div class="suggestions-container">
+            <h2>Improvement Suggestions</h2>
+            <div class="suggestion" id="font-suggestion" style="display: none;">
+                <div class="suggestion-details" id="font-suggestion-details"></div>
+            </div>
+
+            <div class="suggestion" id="alpha-suggestion-wrapper" style="display: none;">
+                <div class="suggestion-swatch" id="suggestion-alpha-swatch"></div>
+                 <div class="suggestion-content">
+                    <div class="suggestion-details" id="alpha-suggestion-details"></div>
+                    <div class="suggestion-ratio-rgb" id="alpha-suggestion-ratio"></div>
+                 </div>
+            </div>
+
+            <div class="suggestion" id="c1-suggestion-wrapper" style="display: none;">
+                <div class="suggestion-swatch" id="suggestion-c1-swatch"></div>
+                <div class="suggestion-content">
+                    <div class="suggestion-details" id="c1-suggestion-details"></div>
+                    <div class="suggestion-ratio-hsl" id="c1-suggestion-hsl-ratio"></div>
+                    <div class="suggestion-ratio-rgb" id="c1-suggestion-rgb-ratio"></div>
+                </div>
+            </div>
+            <div class="suggestion" id="c2-suggestion-wrapper" style="display: none;">
+                <div class="suggestion-swatch" id="suggestion-c2-swatch"></div>
+                <div class="suggestion-content">
+                    <div class="suggestion-details" id="c2-suggestion-details"></div>
+                    <div class="suggestion-ratio-hsl" id="c2-suggestion-hsl-ratio"></div>
+                    <div class="suggestion-ratio-rgb" id="c2-suggestion-rgb-ratio"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        Made by <a href="https://elevenways.be/en" target="_blank" rel="noopener noreferrer">Eleven Ways</a>
+    </footer>
+
+    <script src="lib/coloris.min.js"></script>
+    <script src="popup.js"></script>
+</body>
+</html>

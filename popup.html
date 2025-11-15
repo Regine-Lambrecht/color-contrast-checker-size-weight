@@ -45,12 +45,18 @@
                 <label for="fg-color-text">Colour 1</label>
                 <div class="color-input-wrapper">
                     <input type="text" id="fg-color-text" value="#000000" maxlength="9" data-coloris>
+                    <button id="fg-eyedropper-btn" class="eyedropper-btn" type="button" title="Pick color from screen">
+                        <i class="fa-solid fa-eye-dropper" aria-hidden="true"></i>
+                    </button>
                 </div>
             </div>
             <div class="input-group">
                 <label for="bg-color-text">Colour 2</label>
                 <div class="color-input-wrapper">
                     <input type="text" id="bg-color-text" value="#FFFFFF" maxlength="9" data-coloris>
+                    <button id="bg-eyedropper-btn" class="eyedropper-btn" type="button" title="Pick color from screen">
+                        <i class="fa-solid fa-eye-dropper" aria-hidden="true"></i>
+                    </button>
                 </div>
             </div>
         </div>
@@ -74,6 +80,14 @@
             <h2>Improvement Suggestions</h2>
             <div class="suggestion" id="font-suggestion" style="display: none;">
                 <div class="suggestion-details" id="font-suggestion-details"></div>
+            </div>
+
+            <div class="suggestion" id="alpha-suggestion-wrapper" style="display: none;">
+                <div class="suggestion-swatch" id="suggestion-alpha-swatch"></div>
+                 <div class="suggestion-content">
+                    <div class="suggestion-details" id="alpha-suggestion-details"></div>
+                    <div class="suggestion-ratio-rgb" id="alpha-suggestion-ratio"></div>
+                 </div>
             </div>
 
             <div class="suggestion" id="c1-suggestion-wrapper" style="display: none;">

@@ -4,116 +4,165 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Colour Contrast Checker</title>
-    <link rel="stylesheet" href="popup.css?v=2">
-    <link rel="stylesheet" href="lib/coloris.min.css"/>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/mdbassit/Coloris@latest/dist/coloris.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <style>
+        :root {
+            --bg-color: #f4f6f8;
+            --surface-color: #ffffff;
+            --text-primary: #1a202c;
+            --text-secondary: #5a6474;
+            --border-color: #d1d9e3;
+            --accent-color: #0062cc;
+            --pass-color: #28a745;
+            --fail-color: #dc3545;
+            --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            width: 440px; /* Width for the side panel */
+            padding: 0;
+            margin: 0;
+            font-size: 14px;
+            display: flex;
+            flex-direction: column;
+            min-height: 580px;
+        }
+        main { padding: 0 16px 16px; flex-grow: 1; }
+        .banner { width: 100%; display: block; }
+        h1 { font-size: 18px; text-align: center; margin: 16px 0; color: var(--text-primary); }
+        .input-flex-container { display: flex; gap: 12px; margin-bottom: 16px; align-items: stretch; }
+        .input-group { display: flex; flex-direction: column; position: relative; }
+        .input-group label { font-weight: 600; color: var(--text-secondary); font-size: 12px; margin-bottom: 4px; }
+        fieldset { border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin: 0; display: flex; flex-direction: column; gap: 12px; }
+        fieldset.colours-fieldset { flex: 4; }
+        fieldset.font-fieldset { flex: 6; }
+        legend { padding: 0 8px; font-weight: 600; font-size: 13px; color: var(--text-secondary); display: flex; align-items: center; gap: 8px; }
+        .legend-checkbox-inner { display: flex; align-items: center; gap: 4px; font-weight: 400; font-size: 11px; color: var(--text-secondary); cursor: pointer; }
+        .color-row { display: flex; align-items: center; gap: 6px; }
+        .font-row { display: flex; gap: 8px; }
+        .input-group select, .color-input-wrapper, .unit-switcher-container { height: 34px; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--surface-color); box-sizing: border-box; font-size: 13px; box-shadow: var(--shadow); }
+        input:disabled, select:disabled, .toggle-switch.disabled { opacity: 0.5; cursor: not-allowed !important; }
+        .unit-switcher-container { display: flex; padding: 2px; width: 68px; flex-shrink: 0; background-color: var(--surface-color); border: 1px solid var(--border-color); }
+        .toggle-switch { display: flex; width: 100%; height: 100%; position: relative; }
+        .toggle-switch input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+        .toggle-switch label { padding: 0; margin: 0; box-sizing: border-box; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-secondary); transition: all 0.2s ease; font-size: 10px; font-weight: 700; flex: 1; z-index: 2; border-radius: 4px; }
+        .toggle-switch input[type="radio"]:focus-visible + label { box-shadow: inset 0 0 0 2px #ffffff; z-index: 3; }
+        .toggle-switch input[type="radio"]:checked + label { background-color: var(--accent-color); color: #ffffff; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+        .toggle-switch input[type="radio"]:checked:focus-visible + label { box-shadow: inset 0 0 0 2px #ffffff; }
+        .color-input-wrapper { position: relative; display: flex; align-items: center; width: 80px; flex-shrink: 0; }
+        .color-input-wrapper input[type="text"] { width: 100%; height: 100%; border: none; background: none; padding-left: 40px !important; font-size: 1px !important; color: transparent !important; caret-color: transparent !important; }
+        .color-input-wrapper input[type="text"]:focus { outline: none; }
+        body.bg-picker-active .clr-alpha { display: none !important; }
+        .clr-field { position: static; display: flex !important; width: 100%; height: 100%; }
+        .clr-field button { position: absolute !important; left: 6px !important; top: 50% !important; transform: translateY(-50%) !important; width: 26px !important; height: 26px !important; border-radius: 4px; border: 1px solid var(--border-color); z-index: 2; }
+        .eyedropper-btn { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 24px; height: 24px; padding: 0; border: 1px solid var(--border-color); border-radius: 4px; background: var(--surface-color); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; z-index: 2; }
+        .copy-main-btn { width: 32px; height: 34px; padding: 0; border: 1px solid var(--border-color); border-radius: 6px; background: var(--surface-color); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; box-shadow: var(--shadow); transition: all 0.2s; flex-shrink: 0; box-sizing: border-box; }
+        .copy-main-btn:hover { color: var(--accent-color); border-color: var(--accent-color); }
+        .copy-main-btn.success { color: var(--pass-color) !important; border-color: var(--pass-color) !important; }
+        .results-container { border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--surface-color); padding: 12px 16px; box-shadow: var(--shadow); margin-top: 16px; }
+        .success-container { margin-top: 12px; padding: 10px 16px; border-radius: 8px; background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; font-weight: 600; font-size: 13px; text-align: center; box-shadow: var(--shadow); }
+        .result-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; }
+        .result-row:not(:last-child) { border-bottom: 1px solid var(--bg-color); }
+        .result-label { color: var(--text-secondary); }
+        .result-value { font-weight: 600; font-family: monospace; }
+        .status { font-weight: 700; padding: 4px 10px; border-radius: 6px; font-size: 11px; transition: all 0.2s ease; display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 24px; text-align: center; border: 1px solid rgba(0,0,0,0.15) !important; }
+        .suggestions-container { margin-top: 16px; display: none; flex-direction: column; gap: 8px; }
+        .suggestions-container h2 { font-size: 14px; color: var(--text-secondary); margin: 0 0 4px; font-weight: 500; }
+        .suggestion { background: var(--surface-color); padding: 10px 12px; border-radius: 6px; display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-color); }
+        .suggestion-badge { flex-shrink: 0; }
+        .suggestion-content { display: flex; flex-direction: column; flex-grow: 1; }
+        .suggestion-details { margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; border-radius: 4px; padding: 2px 4px; margin-left: -4px; }
+        .suggestion-text { flex-grow: 1; color: var(--text-primary); }
+        .suggestion-ratio { font-size: 12px; color: var(--text-secondary); }
+        footer { text-align: center; padding: 16px; border-top: 1px solid var(--border-color); font-size: 12px; color: var(--text-secondary); background-color: var(--surface-color); }
+        footer a { color: var(--accent-color); text-decoration: none; font-weight: 500; }
+        footer a:hover { text-decoration: underline; }
+    </style>
 </head>
 <body>
-    <img src="images/banner.png" alt="Eleven Ways banner" class="banner">
-    
-    <main>
-        <h1>Colour Contrast Checker</h1>
-
-        <div class="input-grid">
-            <fieldset>
-                <legend>Font size</legend>
-                <div class="font-fields-container">
-                     <div class="toggle-switch">
-                        <input type="radio" id="unit-px" name="font-size-unit" value="px" checked>
-                        <label for="unit-px">px</label>
-                        <input type="radio" id="unit-pt" name="font-size-unit" value="pt">
-                        <label for="unit-pt">pt</label>
-                    </div>
-                    <label for="font-size" class="sr-only">Font size value</label>
-                    <select id="font-size" style="flex-grow: 1;"></select>
-                </div>
-            </fieldset>
+<img src="images/banner.png" alt="Eleven Ways banner" class="banner" onerror="this.style.display='none'">
+<main>
+    <h1>Colour Contrast Checker</h1>
+    <div class="input-flex-container">
+        <fieldset class="colours-fieldset">
+            <legend>Colours</legend>
             <div class="input-group">
-                <label for="font-weight">Font weight</label>
+                <label for="fg-color-text">Front colour</label>
+                <div class="color-row">
+                    <div class="color-input-wrapper">
+                        <input type="text" id="fg-color-text" value="#000000" maxlength="30" data-coloris>
+                        <button id="fg-eyedropper-btn" class="eyedropper-btn" type="button" title="Pick color from screen"><i class="fa-solid fa-eye-dropper"></i></button>
+                    </div>
+                    <button id="fg-copy-btn" class="copy-main-btn" type="button"><i class="fa-solid fa-copy"></i></button>
+                </div>
+            </div>
+            <div class="input-group">
+                <label for="bg-color-text">Background</label>
+                <div class="color-row">
+                    <div class="color-input-wrapper">
+                        <input type="text" id="bg-color-text" value="#FFFFFF" maxlength="30" data-coloris>
+                        <button id="bg-eyedropper-btn" class="eyedropper-btn" type="button" title="Pick color from screen"><i class="fa-solid fa-eye-dropper"></i></button>
+                    </div>
+                    <button id="bg-copy-btn" class="copy-main-btn" type="button"><i class="fa-solid fa-copy"></i></button>
+                </div>
+            </div>
+        </fieldset>
+        <fieldset class="font-fieldset">
+            <legend>Font <label class="legend-checkbox-inner"><input type="checkbox" id="no-text-legend-checkbox"><span>No text</span></label></legend>
+            <div class="font-row">
+                <div class="input-group">
+                    <label>Unit</label>
+                    <div class="unit-switcher-container">
+                         <div class="toggle-switch">
+                            <input type="radio" id="unit-px" name="font-size-unit" value="px" checked>
+                            <label for="unit-px">PX</label>
+                            <input type="radio" id="unit-pt" name="font-size-unit" value="pt">
+                            <label for="unit-pt">PT</label>
+                         </div>
+                    </div>
+                </div>
+                <div class="input-group" style="flex: 1;"><label for="font-size">Size</label><select id="font-size"></select></div>
+            </div>
+            <div class="input-group">
+                <label for="font-weight">Weight</label>
                 <select id="font-weight">
-                    <option value="400">&lt; 700 (non bold)</option>
+                    <option value="400">&lt; 700 (regular)</option>
                     <option value="700">≥ 700 (bold)</option>
                 </select>
             </div>
-
-            <div class="checkbox-wrapper">
-                <input type="checkbox" id="no-text-checkbox">
-                <label for="no-text-checkbox">There is no text</label>
-            </div>
-
-            <div class="input-group">
-                <label for="fg-color-text">Colour 1</label>
-                <div class="color-input-wrapper">
-                    <input type="text" id="fg-color-text" value="#000000" maxlength="9" data-coloris>
-                    <button id="fg-eyedropper-btn" class="eyedropper-btn" type="button" title="Pick color from screen">
-                        <i class="fa-solid fa-eye-dropper" aria-hidden="true"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="input-group">
-                <label for="bg-color-text">Colour 2</label>
-                <div class="color-input-wrapper">
-                    <input type="text" id="bg-color-text" value="#FFFFFF" maxlength="9" data-coloris>
-                    <button id="bg-eyedropper-btn" class="eyedropper-btn" type="button" title="Pick color from screen">
-                        <i class="fa-solid fa-eye-dropper" aria-hidden="true"></i>
-                    </button>
-                </div>
-            </div>
+        </fieldset>
+    </div>
+    <div class="results-container">
+         <div class="result-row"><span class="result-label">Current ratio:</span><span class="result-value" id="contrast-ratio"></span></div>
+         <div class="result-row"><span class="result-label">Needed ratio:</span><span class="result-value" id="needed-ratio"></span></div>
+        <div class="result-row"><span class="result-label">WCAG AA <span id="aa-text-type"></span></span><span class="status" id="aa-overall-status"></span></div>
+    </div>
+    <div id="success-message" class="success-container" style="display: none;">Well done : your contrast is sufficient!</div>
+    <div class="suggestions-container">
+        <h2>Follow any of the following suggestions</h2>
+        <div class="suggestion" id="font-suggestion" style="display: none;">
+            <div class="status suggestion-badge" id="font-suggestion-badge"></div>
+            <div class="suggestion-content"><div class="suggestion-details"><span class="suggestion-text" id="font-suggestion-label"></span></div><div class="suggestion-ratio" id="font-suggestion-ratio-val"></div></div>
         </div>
-        
-        <div class="results-container">
-             <div class="result-row">
-                <span class="result-label">Current ratio:</span>
-                <span class="result-value" id="contrast-ratio"></span>
-            </div>
-             <div class="result-row">
-                <span class="result-label">Needed ratio:</span>
-                <span class="result-value" id="needed-ratio"></span>
-            </div>
-            <div class="result-row">
-                <span class="result-label">WCAG AA <span id="aa-text-type"></span></span>
-                <span class="status" id="aa-overall-status"></span>
-            </div>
+        <div class="suggestion" id="alpha-suggestion-wrapper" style="display: none;">
+            <div class="status suggestion-badge" id="suggestion-alpha-swatch"></div>
+            <div class="suggestion-content"><div class="suggestion-details"><span class="suggestion-text" id="alpha-suggestion-label"></span><button class="copy-main-btn" id="alpha-suggestion-copy-btn" type="button"></button></div><div class="suggestion-ratio" id="alpha-suggestion-ratio-val"></div></div>
         </div>
-
-        <div class="suggestions-container">
-            <h2>Improvement Suggestions</h2>
-            <div class="suggestion" id="font-suggestion" style="display: none;">
-                <div class="suggestion-details" id="font-suggestion-details"></div>
-            </div>
-
-            <div class="suggestion" id="alpha-suggestion-wrapper" style="display: none;">
-                <div class="suggestion-swatch" id="suggestion-alpha-swatch"></div>
-                 <div class="suggestion-content">
-                    <div class="suggestion-details" id="alpha-suggestion-details"></div>
-                    <div class="suggestion-ratio-rgb" id="alpha-suggestion-ratio"></div>
-                 </div>
-            </div>
-
-            <div class="suggestion" id="c1-suggestion-wrapper" style="display: none;">
-                <div class="suggestion-swatch" id="suggestion-c1-swatch"></div>
-                <div class="suggestion-content">
-                    <div class="suggestion-details" id="c1-suggestion-details"></div>
-                    <div class="suggestion-ratio-hsl" id="c1-suggestion-hsl-ratio"></div>
-                    <div class="suggestion-ratio-rgb" id="c1-suggestion-rgb-ratio"></div>
-                </div>
-            </div>
-            <div class="suggestion" id="c2-suggestion-wrapper" style="display: none;">
-                <div class="suggestion-swatch" id="suggestion-c2-swatch"></div>
-                <div class="suggestion-content">
-                    <div class="suggestion-details" id="c2-suggestion-details"></div>
-                    <div class="suggestion-ratio-hsl" id="c2-suggestion-hsl-ratio"></div>
-                    <div class="suggestion-ratio-rgb" id="c2-suggestion-rgb-ratio"></div>
-                </div>
-            </div>
+        <div class="suggestion" id="c1-suggestion-wrapper" style="display: none;">
+            <div class="status suggestion-badge" id="suggestion-c1-swatch"></div>
+            <div class="suggestion-content"><div class="suggestion-details"><span class="suggestion-text" id="c1-suggestion-label"></span><button class="copy-main-btn" id="c1-suggestion-copy-btn" type="button"></button></div><div class="suggestion-ratio" id="c1-suggestion-ratio-val"></div></div>
         </div>
-    </main>
-
-    <footer>
-        Made by <a href="https://elevenways.be/en" target="_blank" rel="noopener noreferrer">Eleven Ways</a>
-    </footer>
-
-    <script src="lib/coloris.min.js"></script>
-    <script src="popup.js"></script>
+        <div class="suggestion" id="c2-suggestion-wrapper" style="display: none;">
+            <div class="status suggestion-badge" id="suggestion-c2-swatch"></div>
+            <div class="suggestion-content"><div class="suggestion-details"><span class="suggestion-text" id="c2-suggestion-label"></span><button class="copy-main-btn" id="c2-suggestion-copy-btn" type="button"></button></div><div class="suggestion-ratio" id="c2-suggestion-ratio-val"></div></div>
+        </div>
+    </div>
+</main>
+<footer>Made by <a href="https://elevenways.be/en" target="_blank">Eleven Ways</a></footer>
+<script src="https://cdn.jsdelivr.net/gh/mdbassit/Coloris@latest/dist/coloris.min.js"></script>
+<script src="popup.js"></script>
 </body>
 </html>

@@ -1,38 +1,22 @@
 {
     "manifest_version": 3,
-    "name": "Colour Contrast Checker",
-    "version": "1.0",
-    "description": "A tool to check colour contrast based on WCAG standards.",
+    "name": "Colour Contrast Checker Pro",
+    "version": "1.2",
+    "description": "Standardized WCAG contrast checker with side-panel support and progress saving.",
     "permissions": [
         "sidePanel",
-        "clipboardWrite"
+        "clipboardWrite",
+        "storage"
     ],
     "side_panel": {
         "default_path": "popup.html"
     },
-    "background": {
-        "service_worker": "background.js"
-    },
     "action": {
-        "default_icon": {
-            "16": "icons/icon16.png",
-            "48": "icons/icon48.png",
-            "128": "icons/icon128.png"
-        }
+        "default_title": "Open Colour Checker"
     },
     "icons": {
-        "16": "icons/icon16.png",
-        "48": "icons/icon48.png",
-        "128": "icons/icon128.png"
-    },
-    "web_accessible_resources": [
-        {
-            "resources": [
-                "images/banner.png"
-            ],
-            "matches": [
-                "<all_urls>"
-            ]
-        }
-    ]
+        "16": "icon16.png",
+        "48": "icon48.png",
+        "128": "icon128.png"
+    }
 }

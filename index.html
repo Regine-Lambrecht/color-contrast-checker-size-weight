@@ -17,8 +17,8 @@
     --text-secondary: #54615D; /* Labels, legends, suggestion text color */
     --border-color: #ced5d3; 
     --accent-color: #0062cc;
-    --pass-color: #28a745;
-    --fail-color: #dc3545;
+    --pass-color: #00784d; 
+    --fail-color: #cd1a00; 
     --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
 }
 
@@ -202,10 +202,13 @@ select:disabled,
     height: 100%;
     border: none;
     background: none;
-    padding-left: 40px !important; 
+    /* UPDATED: Padding reduced to 8px to place text BEHIND the absolute-positioned swatch button */
+    padding-left: 8px !important; 
+    padding-right: 4px !important;
     font-size: 1px !important;
-    color: transparent !important;
+    color: #000 !important;
     caret-color: transparent !important;
+    text-align: left !important;
 }
 
 /* --- PICKER OVERRIDES --- */
@@ -256,6 +259,7 @@ body.bg-picker-active .clr-alpha {
     height: 26px !important;
     border-radius: 4px;
     border: 1px solid var(--border-color);
+    z-index: 2; /* Ensures it stays on top of the 1px text */
 }
 
 .eyedropper-btn {
@@ -275,6 +279,7 @@ body.bg-picker-active .clr-alpha {
     align-items: center;
     justify-content: center;
     font-size: 12px;
+    z-index: 2;
 }
 
 /* --- Standardized Copy Buttons --- */
@@ -313,7 +318,7 @@ body.bg-picker-active .clr-alpha {
     margin-top: 16px;
     transition: border-color 0.2s ease;
     display: block !important;
-    background-color: #e6ebe9 !important; /* UPDATED: Specific requested bg color */
+    background-color: #e6ebe9 !important; 
 }
 
 .results-3-col {
@@ -457,7 +462,7 @@ footer a {
                             <i class="fa-solid fa-eye-dropper"></i>
                         </button>
                     </div>
-                    <button id="fg-copy-btn" class="copy-main-btn" type="button"><i class="fa-solid fa-copy"></i></button>
+                    <button id="fg-copy-btn" class="copy-main-btn" type="button" aria-label="Copy colour code"><i class="fa-solid fa-copy"></i></button>
                 </div>
             </div>
             <div class="input-group">
@@ -469,7 +474,7 @@ footer a {
                             <i class="fa-solid fa-eye-dropper"></i>
                         </button>
                     </div>
-                    <button id="bg-copy-btn" class="copy-main-btn" type="button"><i class="fa-solid fa-copy"></i></button>
+                    <button id="bg-copy-btn" class="copy-main-btn" type="button" aria-label="Copy colour code"><i class="fa-solid fa-copy"></i></button>
                 </div>
             </div>
         </fieldset>
@@ -556,7 +561,7 @@ footer a {
              <div class="suggestion-content">
                 <div class="suggestion-details">
                     <span class="suggestion-text" id="alpha-suggestion-label"></span>
-                    <button class="copy-main-btn" id="alpha-suggestion-copy-btn" type="button"><i class="fa-solid fa-copy"></i></button>
+                    <button class="copy-main-btn" id="alpha-suggestion-copy-btn" type="button" aria-label="Copy colour code"><i class="fa-solid fa-copy"></i></button>
                 </div>
                 <div class="suggestion-ratio" id="alpha-suggestion-ratio-val"></div>
              </div>
@@ -567,7 +572,7 @@ footer a {
             <div class="suggestion-content">
                 <div class="suggestion-details">
                     <span class="suggestion-text" id="c1-suggestion-label"></span>
-                    <button class="copy-main-btn" id="c1-suggestion-copy-btn" type="button"><i class="fa-solid fa-copy"></i></button>
+                    <button class="copy-main-btn" id="c1-suggestion-copy-btn" type="button" aria-label="Copy colour code"><i class="fa-solid fa-copy"></i></button>
                 </div>
                 <div class="suggestion-ratio" id="font-suggestion-ratio-val-fixed-c1"></div>
             </div>
@@ -578,7 +583,7 @@ footer a {
             <div class="suggestion-content">
                 <div class="suggestion-details">
                     <span class="suggestion-text" id="c2-suggestion-label"></span>
-                    <button class="copy-main-btn" id="c2-suggestion-copy-btn" type="button"><i class="fa-solid fa-copy"></i></button>
+                    <button class="copy-main-btn" id="c2-suggestion-copy-btn" type="button" aria-label="Copy colour code"><i class="fa-solid fa-copy"></i></button>
                 </div>
                 <div class="suggestion-ratio" id="font-suggestion-ratio-val-fixed-c2"></div>
             </div>

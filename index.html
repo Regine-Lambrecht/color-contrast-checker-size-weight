@@ -94,6 +94,25 @@ legend {
     color: var(--text-secondary);
 }
 
+/* --- Unit Fieldset styling (Invisible) --- */
+.unit-fieldset {
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.unit-fieldset legend {
+    padding: 0 !important;
+    margin-bottom: 4px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 12px;
+    display: block;
+}
+
 .legend-checkbox-inner {
     display: inline-flex;
     align-items: center;
@@ -112,7 +131,9 @@ legend {
 }
 
 .font-row {
-    display: flex; gap: 8px;
+    display: flex; 
+    gap: 8px;
+    align-items: flex-end;
 }
 
 .input-group select, .color-input-wrapper, .unit-switcher-container {
@@ -202,7 +223,6 @@ select:disabled,
     height: 100%;
     border: none;
     background: none;
-    /* UPDATED: Padding reduced to 8px to place text BEHIND the absolute-positioned swatch button */
     padding-left: 8px !important; 
     padding-right: 4px !important;
     font-size: 1px !important;
@@ -259,7 +279,7 @@ body.bg-picker-active .clr-alpha {
     height: 26px !important;
     border-radius: 4px;
     border: 1px solid var(--border-color);
-    z-index: 2; /* Ensures it stays on top of the 1px text */
+    z-index: 2;
 }
 
 .eyedropper-btn {
@@ -311,7 +331,7 @@ body.bg-picker-active .clr-alpha {
     border-color: var(--pass-color) !important;
 }
 
-/* --- Reorganized Results Container (3 Columns) --- */
+/* --- Results Container (3 Columns) --- */
 .results-container {
     padding: 12px 16px;
     box-shadow: var(--shadow);
@@ -490,8 +510,9 @@ footer a {
             </legend>
             
             <div class="font-row">
-                <div class="input-group">
-                    <label>Unit</label>
+                <!-- UPDATED: Fieldset legend for Unit label, no visible fieldset -->
+                <fieldset class="unit-fieldset">
+                    <legend>Unit</legend>
                     <div class="unit-switcher-container">
                          <div class="toggle-switch">
                             <input type="radio" id="unit-px" name="font-size-unit" value="px" checked>
@@ -500,7 +521,8 @@ footer a {
                             <label for="unit-pt">PT</label>
                          </div>
                     </div>
-                </div>
+                </fieldset>
+
                 <div class="input-group" style="flex: 1;">
                     <label for="font-size">Size</label>
                     <select id="font-size"></select>
@@ -750,7 +772,8 @@ document.addEventListener('DOMContentLoaded', () => {
         let isLarge = false;
         if (!isNonText) {
             const fs = parseFloat(fontSizeSelect.value);
-            const unit = document.querySelector('input[name="font-size-unit"]:checked').value;
+            const unitEl = document.querySelector('input[name="font-size-unit"]:checked');
+            const unit = unitEl ? unitEl.value : 'px';
             const weight = parseInt(fontWeightSelect.value, 10);
             if (unit === 'pt') isLarge = (fs >= 18) || (fs >= 14 && weight >= 700);
             else isLarge = (fs >= 24) || (fs >= 18.66 && weight >= 700);
@@ -914,7 +937,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return null;
     }
     function findPassingAlpha(fg, bg, needed) {
-        for (let a = 0.01; a <= 1; a += 0.01) { if (getContrastRatio(flattenColor({ ...fg, a }, bg), bg) >= needed) return a; }
+        for (let a = 0.01; a <= 0.99; a += 0.01) { if (getContrastRatio(flattenColor({ ...fg, a }, bg), bg) >= needed) return a; }
         return null;
     }
     async function pickColor(inputElement) {

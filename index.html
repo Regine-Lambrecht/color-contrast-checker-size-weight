@@ -74,6 +74,28 @@ legend {
     color: var(--text-secondary);
 }
 
+/* Borderless fieldset for unit grouping */
+.unit-fieldset {
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0 !important;
+    width: auto !important;
+}
+
+.unit-fieldset legend {
+    padding: 0 !important;
+    margin-bottom: 4px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: var(--text-secondary) !important;
+    float: left;
+    width: 100%;
+}
+
 .legend-checkbox-inner {
     display: inline-flex;
     align-items: center;
@@ -336,8 +358,9 @@ footer a:hover { opacity: 0.8; }
             </legend>
             
             <div class="font-row">
-                <div class="input-group">
-                    <label for="unit-px">Unit</label>
+                <!-- Fieldset around unit radio buttons with legend for semantics -->
+                <fieldset class="input-group unit-fieldset">
+                    <legend>Unit</legend>
                     <div id="font-unit-container" class="unit-switcher-container">
                          <div class="toggle-switch">
                             <input type="radio" id="unit-px" name="font-size-unit" value="px" checked>
@@ -346,7 +369,7 @@ footer a:hover { opacity: 0.8; }
                             <label for="unit-pt">PT</label>
                          </div>
                     </div>
-                </div>
+                </fieldset>
                 <div class="input-group" style="flex: 1;">
                     <label for="font-size">Size</label>
                     <select id="font-size"></select>
@@ -552,7 +575,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function updateFontSizeOptions() {
-        const unit = document.querySelector('input[name="font-size-unit"]:checked').value;
+        const unitEl = document.querySelector('input[name="font-size-unit"]:checked');
+        const unit = unitEl ? unitEl.value : 'px';
         const previousIndex = fontSizeSelect.selectedIndex >= 0 ? fontSizeSelect.selectedIndex : 0;
         
         fontSizeSelect.innerHTML = '';
@@ -566,7 +590,6 @@ document.addEventListener('DOMContentLoaded', () => {
             fontSizeSelect.appendChild(o);
         });
         
-        // Restore index to keep px/pt coherent by range entry
         fontSizeSelect.selectedIndex = previousIndex;
     }
 
@@ -593,7 +616,8 @@ document.addEventListener('DOMContentLoaded', () => {
         let isLarge = false;
         if (!isNonText) {
             const fs = parseFloat(fontSizeSelect.value);
-            const unit = document.querySelector('input[name="font-size-unit"]:checked').value;
+            const unitEl = document.querySelector('input[name="font-size-unit"]:checked');
+            const unit = unitEl ? unitEl.value : 'px';
             const weight = parseInt(fontWeightSelect.value, 10);
             if (unit === 'pt') isLarge = (fs >= 18) || (fs >= 14 && weight >= 700);
             else isLarge = (fs >= 24) || (fs >= 18.66 && weight >= 700);
@@ -606,13 +630,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Audio and Screen Reader Management
         if (!isInitial) {
-            // First user edit: play sound and update announcer
             if (!firstUserInteractionOccurred) {
                 if (passes) playPassSound(); else playFailSound();
                 statusAnnouncer.textContent = passes ? 'Passes' : 'Fails';
                 firstUserInteractionOccurred = true;
             } 
-            // Subsequent flips: play sound and update announcer
             else if (lastPassStatus !== null && lastPassStatus !== passes) {
                 if (passes) playPassSound(); else playFailSound();
                 statusAnnouncer.textContent = passes ? 'Passes' : 'Fails';
@@ -643,7 +665,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function generateSuggestions(fgRaw, bgRgb, needed, isNonText, isLarge, currentRatio) {
         suggestionsList.innerHTML = '';
         const activeUnit = units[currentUnitIndex];
-        const fontUnit = document.querySelector('input[name="font-size-unit"]:checked').value;
+        const fontUnitEl = document.querySelector('input[name="font-size-unit"]:checked');
+        const fontUnit = fontUnitEl ? fontUnitEl.value : 'px';
         let suggestionCount = 0;
 
         const addSugg = (content) => {
@@ -693,7 +716,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // 3. Replace Front
         const sFg = findPassingFgColor(fgRaw, bgRgb, fgRaw.a, needed);
         if (sFg) {
-            // MERGE CURRENT ALPHA into the suggested Hue for Front replacements
             const colorWithCurrentAlpha = { ...sFg.rgb, a: fgRaw.a };
             const colorStr = formatColor(colorWithCurrentAlpha, activeUnit);
             const el = addSugg(`

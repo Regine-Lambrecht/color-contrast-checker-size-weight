@@ -594,13 +594,13 @@ document.addEventListener('DOMContentLoaded', () => {
             // First user edit: play sound and update announcer
             if (!firstUserInteractionOccurred) {
                 if (passes) playPassSound(); else playFailSound();
-                statusAnnouncer.textContent = passes ? 'Pass' : 'Fail';
+                statusAnnouncer.textContent = passes ? 'Passes' : 'Fails';
                 firstUserInteractionOccurred = true;
             } 
             // Subsequent flips: play sound and update announcer
             else if (lastPassStatus !== null && lastPassStatus !== passes) {
                 if (passes) playPassSound(); else playFailSound();
-                statusAnnouncer.textContent = passes ? 'Pass' : 'Fail';
+                statusAnnouncer.textContent = passes ? 'Passes' : 'Fails';
             }
         }
         lastPassStatus = passes;

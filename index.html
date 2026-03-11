@@ -271,6 +271,17 @@ input[type="color"]::-webkit-color-swatch { border: none; }
 .suggestion { background: var(--surface-color); padding: 10px 12px; border-radius: 6px; display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-color); }
 .suggestion-text { flex-grow: 1; color: var(--text-secondary); }
 
+/* Fallback feedback message when no suggestions found */
+.no-suggestions-message {
+    background: #e9eceb;
+    padding: 12px;
+    border-radius: 6px;
+    border: 1px dashed var(--border-color);
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.4;
+}
+
 footer { text-align: center; padding: 16px; border-top: 1px solid var(--border-color); font-size: 12px; color: var(--text-secondary); }
 footer a { color: var(--accent-color); text-decoration: underline; }
 footer a:hover { opacity: 0.8; }
@@ -308,7 +319,7 @@ footer a:hover { opacity: 0.8; }
                     <div class="color-preview-wrapper">
                         <input type="color" id="bg-picker" value="#FFFFFF">
                     </div>
-                    <div style="width: 58px;"></div>
+                    <div style="width: 58px;"></div> <!-- Spacer -->
                     <button id="bg-copy-btn" class="copy-main-btn"><i class="fa-solid fa-copy"></i></button>
                 </div>
             </div>
@@ -591,13 +602,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Audio and Screen Reader Management
         if (!isInitial) {
-            // First user edit: play sound and update announcer
             if (!firstUserInteractionOccurred) {
                 if (passes) playPassSound(); else playFailSound();
                 statusAnnouncer.textContent = passes ? 'Passes' : 'Fails';
                 firstUserInteractionOccurred = true;
             } 
-            // Subsequent flips: play sound and update announcer
             else if (lastPassStatus !== null && lastPassStatus !== passes) {
                 if (passes) playPassSound(); else playFailSound();
                 statusAnnouncer.textContent = passes ? 'Passes' : 'Fails';
@@ -627,36 +636,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function generateSuggestions(fgRaw, bgRgb, needed, isNonText, isLarge, currentRatio) {
         suggestionsList.innerHTML = '';
-        const fontUnit = document.querySelector('input[name="font-size-unit"]:checked').value;
         const activeUnit = units[currentUnitIndex];
+        const fontUnit = document.querySelector('input[name="font-size-unit"]:checked').value;
+        let suggestionCount = 0;
 
-        if (!isNonText && !isLarge && currentRatio >= 3.0) {
+        const addSugg = (content) => {
             const div = document.createElement('div');
             div.className = 'suggestion';
+            div.innerHTML = content;
+            suggestionsList.appendChild(div);
+            suggestionCount++;
+            return div;
+        };
+
+        // 1. Font Enlarge
+        if (!isNonText && !isLarge && currentRatio >= 3.0) {
             const req = (fontUnit === 'px') ? `min 18.66px bold or 24px regular.` : `min 14pt bold or 18pt regular.`;
-            div.innerHTML = `
+            addSugg(`
                 <div class="status" style="color:${fgPicker.value}; opacity:${fgRaw.a}; background-color:${bgPicker.value};">PASS</div>
                 <div style="flex-grow:1;">
                     <div style="color:var(--text-secondary); font-weight:500;">Enlarge text: ${req}</div>
                     <div style="font-size:12px; color:var(--text-secondary);">Ratio: ${currentRatio.toFixed(2)}</div>
                 </div>
-            `;
-            suggestionsList.appendChild(div);
+            `);
         }
 
+        // 2. Opacity
         const solidFg = { r: fgRaw.r, g: fgRaw.g, b: fgRaw.b, a: 1.0 };
         const solidRatio = getContrastRatio(solidFg, bgRgb);
-        
         if (solidRatio >= needed && currentRatio < needed) {
             const pA = findPassingAlpha(fgRaw, bgRgb, needed);
             if (pA) {
                 const opacityPercent = Math.round(pA * 100) + '%';
-                const colorWithSuggestedAlpha = { ...fgRaw, a: pA };
-                const colorStr = formatColor(colorWithSuggestedAlpha, activeUnit);
-                
-                const div = document.createElement('div');
-                div.className = 'suggestion';
-                div.innerHTML = `
+                const colorWithAlpha = { ...fgRaw, a: pA };
+                const colorStr = formatColor(colorWithAlpha, activeUnit);
+                const el = addSugg(`
                     <div class="status" style="color: ${fgPicker.value}; opacity: ${pA}; background-color: ${bgPicker.value};">PASS</div>
                     <div style="flex-grow:1; display:flex; flex-direction:column;">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -665,46 +679,52 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                         <span style="font-size:12px; color:var(--text-secondary);">Ratio: ${needed.toFixed(2)}</span>
                     </div>
-                `;
-                div.querySelector('button').onclick = () => copyToClipboard(div.querySelector('button'), colorStr);
-                suggestionsList.appendChild(div);
+                `);
+                el.querySelector('button').onclick = () => copyToClipboard(el.querySelector('button'), colorStr);
             }
         }
 
-        const addSugg = (label, colorRgb, ratioVal) => {
-            const div = document.createElement('div');
-            div.className = 'suggestion';
-            const colorStr = formatColor(colorRgb, activeUnit);
-            
-            let badgeFg = fgPicker.value;
-            let badgeBg = bgPicker.value;
-            let badgeAlpha = fgRaw.a;
-
-            if (label.includes('Background')) {
-                badgeBg = rgbToHex(colorRgb);
-            } else {
-                badgeFg = rgbToHex(colorRgb);
-            }
-
-            div.innerHTML = `
-                <div class="status" style="color: ${badgeFg}; opacity: ${badgeAlpha}; background-color: ${badgeBg};">PASS</div>
+        // 3. Replace Front
+        const sFg = findPassingFgColor(fgRaw, bgRgb, fgRaw.a, needed);
+        if (sFg) {
+            const colorStr = formatColor(sFg.rgb, activeUnit);
+            const el = addSugg(`
+                <div class="status" style="color: ${rgbToHex(sFg.rgb)}; opacity: ${fgRaw.a}; background-color: ${bgPicker.value};">PASS</div>
                 <div style="flex-grow:1; display:flex; flex-direction:column;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span style="color:var(--text-secondary);">${label} <b style="font-family:monospace;">${colorStr}</b></span>
+                        <span style="color:var(--text-secondary);">Replace <b>Front</b> with <b style="font-family:monospace;">${colorStr}</b></span>
                         <button class="copy-main-btn" type="button" title="${colorStr}"><i class="fa-solid fa-copy"></i></button>
                     </div>
-                    <span style="font-size:12px; color:var(--text-secondary);">Ratio: ${ratioVal.toFixed(2)}</span>
+                    <span style="font-size:12px; color:var(--text-secondary);">Ratio: ${sFg.ratio.toFixed(2)}</span>
                 </div>
-            `;
-            div.querySelector('button').onclick = () => copyToClipboard(div.querySelector('button'), colorStr);
-            suggestionsList.appendChild(div);
-        };
+            `);
+            el.querySelector('button').onclick = () => copyToClipboard(el.querySelector('button'), colorStr);
+        }
 
-        const sFg = findPassingFgColor(fgRaw, bgRgb, fgRaw.a, needed);
-        if (sFg) addSugg(`Replace <b>Front</b> with`, sFg.rgb, sFg.ratio);
-
+        // 4. Replace Background
         const sBg = findPassingBgColor(fgRaw, bgRgb, fgRaw.a, needed);
-        if (sBg) addSugg(`Replace <b>Background</b> with`, sBg.rgb, sBg.ratio);
+        if (sBg) {
+            const colorStr = formatColor(sBg.rgb, activeUnit);
+            const el = addSugg(`
+                <div class="status" style="color: ${fgPicker.value}; opacity: ${fgRaw.a}; background-color: ${rgbToHex(sBg.rgb)};">PASS</div>
+                <div style="flex-grow:1; display:flex; flex-direction:column;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="color:var(--text-secondary);">Replace <b>Background</b> with <b style="font-family:monospace;">${colorStr}</b></span>
+                        <button class="copy-main-btn" type="button" title="${colorStr}"><i class="fa-solid fa-copy"></i></button>
+                    </div>
+                    <span style="font-size:12px; color:var(--text-secondary);">Ratio: ${sBg.ratio.toFixed(2)}</span>
+                </div>
+            `);
+            el.querySelector('button').onclick = () => copyToClipboard(el.querySelector('button'), colorStr);
+        }
+
+        // Fallback Feedback Message
+        if (suggestionCount === 0) {
+            const info = document.createElement('div');
+            info.className = 'no-suggestions-message';
+            info.innerHTML = `No simple adjustments found. This occurs when lightness changes, opacity increases, or enlarging the font alone cannot reach the required contrast ratio for the current hue. Try picking a significantly different color or a more opaque front color.`;
+            suggestionsList.appendChild(info);
+        }
     }
 
     /* --- MATH CORE --- */

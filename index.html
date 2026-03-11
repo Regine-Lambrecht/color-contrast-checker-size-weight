@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Colour Contrast Checker Pro</title>
-    <!-- External Libraries -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/mdbassit/Coloris@latest/dist/coloris.min.css"/>
+    
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
     
     <style>
@@ -14,7 +14,7 @@
     --bg-color: #F3F6F5; 
     --surface-color: #ffffff;
     --text-primary: #1a202c;
-    --text-secondary: #54615D; /* Labels, legends, suggestion text color */
+    --text-secondary: #54615D; 
     --border-color: #ced5d3; 
     --accent-color: #0062cc;
     --pass-color: #00784d; 
@@ -35,46 +35,26 @@ body {
     min-height: 580px;
 }
 
-main {
-    padding: 0 16px 16px;
-    flex-grow: 1;
-}
+main { padding: 0 16px 16px; flex-grow: 1; }
+.banner { width: 100%; display: block; height: auto; border-bottom: 1px solid var(--border-color); }
+h1 { font-size: 18px; text-align: center; margin: 16px 0 16px; color: var(--text-primary); }
 
-.banner {
-    width: 100%;
-    display: block;
-    height: auto;
-    border-bottom: 1px solid var(--border-color);
-}
+.input-flex-container { display: flex; gap: 12px; margin-bottom: 16px; align-items: stretch; }
+.input-group { display: flex; flex-direction: column; position: relative; }
 
-h1 {
-    font-size: 18px;
-    text-align: center;
-    margin: 16px 0 16px;
-    color: var(--text-primary);
-}
-
-.input-flex-container {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 16px;
-    align-items: stretch;
-}
-
-.input-group {
-    display: flex;
-    flex-direction: column;
-    position: relative; 
-}
-
-.input-group label {
+.input-group label, .label-row label { 
     font-weight: 600; 
-    color: var(--text-secondary);
-    font-size: 12px;
-    margin-bottom: 4px;
+    color: var(--text-secondary); 
+    font-size: 12px; 
+    margin-bottom: 4px; 
 }
 
-.main-fieldset {
+.label-row {
+    display: flex;
+    gap: 8px;
+}
+
+fieldset {
     border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 12px;
@@ -82,35 +62,16 @@ h1 {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    background-color: var(--surface-color);
 }
+.colours-fieldset { flex: 4.5; }
+.font-fieldset { flex: 5.5; }
 
-.main-fieldset.colours-fieldset { flex: 4; }
-.main-fieldset.font-fieldset { flex: 6; }
-
-legend {
-    padding: 0 8px;
-    font-weight: 600;
-    font-size: 13px;
+legend { 
+    padding: 0 8px; 
+    font-weight: 600; 
+    font-size: 13px; 
     color: var(--text-secondary);
-}
-
-/* --- Unit Fieldset styling (Invisible) --- */
-.unit-fieldset {
-    border: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-}
-
-.unit-fieldset legend {
-    padding: 0 !important;
-    margin-bottom: 4px;
-    font-weight: 600;
-    color: var(--text-secondary);
-    font-size: 12px;
-    display: block;
 }
 
 .legend-checkbox-inner {
@@ -124,383 +85,191 @@ legend {
     margin-left: 8px;
 }
 
-.color-row {
+.suggestions-header {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 6px;
+    margin-bottom: 8px;
 }
 
-.font-row {
-    display: flex; 
-    gap: 8px;
-    align-items: flex-end;
-}
-
-.input-group select, .color-input-wrapper, .unit-switcher-container {
-    height: 34px;
+.unit-toggle-btn {
+    background: var(--surface-color);
     border: 1px solid var(--border-color);
-    border-radius: 6px;
-    background-color: var(--surface-color);
-    box-sizing: border-box;
-    font-size: 13px;
-    box-shadow: var(--shadow);
-}
-
-input:disabled, 
-select:disabled, 
-.unit-switcher-container.disabled {
-    background-color: #f1f5f9 !important;
-    opacity: 0.6;
-    cursor: not-allowed !important;
-}
-
-.unit-switcher-container {
-    display: flex;
-    padding: 2px;
-    width: 68px; 
-    flex-shrink: 0;
-    background-color: var(--surface-color);
-    border: 1px solid var(--border-color);
-}
-
-.toggle-switch {
-    display: flex;
-    width: 100%;
-    height: 100%;
-    position: relative;
-}
-
-.toggle-switch input[type="radio"] {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border-width: 0;
-}
-
-.toggle-switch label {
-    padding: 0;
-    margin: 0;
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    color: var(--text-secondary);
-    transition: all 0.2s ease;
+    border-radius: 4px;
+    padding: 4px 8px;
     font-size: 10px;
     font-weight: 700;
-    flex: 1;
-    z-index: 2;
-    border-radius: 4px;
-}
-
-.toggle-switch input[type="radio"]:focus-visible + label {
-    box-shadow: inset 0 0 0 2px #ffffff;
-    z-index: 3;
-}
-
-.toggle-switch input[type="radio"]:checked + label {
-    background-color: var(--accent-color);
-    color: #ffffff;
-}
-
-.color-input-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-    padding: 0;
-    width: 80px; 
-    flex-shrink: 0;
-}
-
-.color-input-wrapper input[type="text"] {
-    width: 100%;
-    height: 100%;
-    border: none;
-    background: none;
-    padding-left: 8px !important; 
-    padding-right: 4px !important;
-    font-size: 1px !important;
-    color: #000 !important;
-    caret-color: transparent !important;
-    text-align: left !important;
-}
-
-/* --- PICKER OVERRIDES --- */
-#clr-picker {
-    background-color: white !important;
-    transform: translateZ(0);
-}
-
-#clr-picker #clr-preview,
-#clr-picker .clr-preview {
-    display: none !important;
-}
-
-#clr-picker .clr-value {
-    display: block !important;
-    text-align: center !important;
-    width: 100% !important;
-}
-
-#clr-picker #clr-color-value {
-    width: 85% !important; 
-    max-width: 180px;
-    margin: 10px auto !important;
-    display: block !important;
-    text-align: center !important;
-    padding: 6px !important;
-    box-sizing: border-box !important;
-    border: 1px solid var(--border-color); 
-}
-
-body.bg-picker-active .clr-alpha { 
-    display: none !important; 
-}
-
-.clr-field {
-    position: static;
-    display: flex !important;
-    width: 100%;
-    height: 100%;
-}
-
-.clr-field button {
-    position: absolute !important;
-    left: 6px !important; 
-    top: 50% !important; 
-    transform: translateY(-50%) !important;
-    width: 26px !important;
-    height: 26px !important;
-    border-radius: 4px;
-    border: 1px solid var(--border-color);
-    z-index: 2;
-}
-
-.eyedropper-btn {
-    position: absolute;
-    right: 6px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 24px;
-    height: 24px;
-    padding: 0;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    background: var(--surface-color);
     color: var(--text-secondary);
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    z-index: 2;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    line-height: 1;
+    box-shadow: var(--shadow);
+}
+.unit-toggle-btn:hover {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
 }
 
-/* --- Standardized Copy Buttons --- */
-.copy-main-btn {
-    width: 32px;
-    height: 34px;
-    padding: 0;
+.color-row { display: flex; align-items: center; gap: 8px; }
+.font-row { display: flex; gap: 8px; }
+
+input[type="color"] {
+    -webkit-appearance: none;
     border: 1px solid var(--border-color);
     border-radius: 6px;
-    background: var(--surface-color);
-    color: var(--text-secondary);
+    width: 34px;
+    height: 34px;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    box-shadow: var(--shadow);
-    transition: all 0.2s;
+    background: none;
+    padding: 0;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+input[type="color"]::-webkit-color-swatch { border: none; }
+
+.color-preview-wrapper {
+    position: relative;
+    width: 34px;
+    height: 34px;
+    border-radius: 6px;
+    background-image: 
+        linear-gradient(45deg, #ccc 25%, transparent 25%), 
+        linear-gradient(-45deg, #ccc 25%, transparent 25%), 
+        linear-gradient(45deg, transparent 75%, #ccc 75%), 
+        linear-gradient(-45deg, transparent 75%, #ccc 75%);
+    background-size: 8px 8px;
+    background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
+    background-color: white;
     flex-shrink: 0;
 }
 
-.copy-main-btn:hover:not(:disabled) {
-    color: var(--accent-color);
-    border-color: var(--accent-color);
-}
-
-.copy-main-btn.success {
-    color: var(--pass-color) !important;
-    border-color: var(--pass-color) !important;
-}
-
-/* --- Results Container (3 Columns) --- */
-.results-container {
-    padding: 12px 16px;
+.opacity-input {
+    width: 58px;
+    height: 34px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 0 4px;
+    text-align: center;
+    font-size: 13px;
     box-shadow: var(--shadow);
-    margin-top: 16px;
-    transition: border-color 0.2s ease;
-    display: block !important;
+    box-sizing: border-box;
+}
+
+.input-group select, .unit-switcher-container {
+    height: 34px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: var(--surface-color);
+    box-sizing: border-box;
+    font-size: 13px;
+    box-shadow: var(--shadow);
+}
+
+.unit-switcher-container { 
+    display: flex; 
+    padding: 2px; 
+    width: 68px; 
+    flex-shrink: 0; 
+    transition: opacity 0.2s;
+}
+
+.unit-switcher-container.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.toggle-switch { display: flex; width: 100%; height: 100%; position: relative; }
+.toggle-switch input[type="radio"] { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
+.toggle-switch label {
+    padding: 0; margin: 0; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--text-secondary); transition: all 0.2s ease;
+    font-size: 10px; font-weight: 700; flex: 1; z-index: 2; border-radius: 4px;
+}
+.toggle-switch input[type="radio"]:checked + label { background-color: var(--accent-color); color: #ffffff; }
+
+.copy-main-btn {
+    width: 32px; height: 34px; border: 1px solid var(--border-color); border-radius: 6px;
+    background: var(--surface-color); color: var(--text-secondary); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 14px;
+    box-shadow: var(--shadow);
+}
+
+.results-container {
+    padding: 12px 16px; box-shadow: var(--shadow); margin-top: 16px;
+    transition: border-color 0.2s ease; display: block !important;
     background-color: #e6ebe9 !important; 
 }
-
-.results-3-col {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    text-align: center;
-}
-
-.col-status {
-    flex: 1;
-    display: flex;
-    justify-content: flex-start;
-}
-
-.col-data {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-}
-
-.result-label { 
-    color: var(--text-secondary); 
-    font-size: 12px; 
-    font-weight: 500;
-    white-space: nowrap;
-}
-
-.result-value { 
-    font-weight: 700; 
-    font-family: monospace; 
-    font-size: 15px;
-}
+.results-3-col { display: flex; align-items: center; justify-content: space-between; gap: 8px; text-align: center; }
+.col-status { flex: 1; display: flex; justify-content: flex-start; }
+.col-data { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.result-label { color: var(--text-secondary); font-size: 12px; font-weight: 500; }
+.result-value { font-weight: 700; font-family: monospace; font-size: 15px; }
 
 .status {
-    font-weight: 700;
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 11px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 64px;
-    min-height: 32px;
-    border: 1px solid rgba(0,0,0,0.15) !important;
+    font-weight: 700; padding: 6px 12px; border-radius: 6px; font-size: 11px;
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 64px; min-height: 32px; border: 1px solid rgba(0,0,0,0.15) !important;
 }
 
-.status i { font-size: 16px !important; line-height: 1; }
+.status i { font-size: 16px !important; }
 
 .success-container {
-    margin-top: 12px;
-    padding: 10px 16px;
-    border-radius: 8px;
-    background-color: #A9D3CF; 
-    color: #193426;           
-    border: 1px solid #92b9b5; 
-    font-weight: 600;
-    font-size: 13px;
-    text-align: center;
-    box-shadow: var(--shadow);
+    margin-top: 12px; padding: 10px 16px; border-radius: 8px; background-color: #A9D3CF; 
+    color: #193426; border: 1px solid #92b9b5; font-weight: 600; font-size: 13px; text-align: center;
 }
 
-.suggestions-container {
-    margin-top: 16px;
-    display: none;
-    flex-direction: column;
-    gap: 8px;
-}
+.suggestions-container { margin-top: 16px; display: none; flex-direction: column; gap: 8px; }
+.suggestions-container h2 { font-size: 14px; color: var(--text-secondary); margin: 0; font-weight: 600; }
+.suggestion { background: var(--surface-color); padding: 10px 12px; border-radius: 6px; display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-color); }
+.suggestion-text { flex-grow: 1; color: var(--text-secondary); }
 
-.suggestions-container h2 {
-    font-size: 14px;
-    color: var(--text-secondary);
-    margin: 0 0 4px;
-}
-
-.suggestion {
-    background: var(--surface-color);
-    padding: 10px 12px;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    border: 1px solid var(--border-color);
-}
-
-.suggestion-badge { flex-shrink: 0; }
-.suggestion-content { display: flex; flex-direction: column; flex-grow: 1; }
-
-.suggestion-details {
-    margin-bottom: 4px;
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-}
-
-.suggestion-text { 
-    flex-grow: 1; 
-    color: var(--text-secondary); 
-    cursor: default; 
-}
-
-.suggestion-ratio {
-    font-size: 12px;
-    color: var(--text-secondary);
-}
-
-footer {
-    text-align: center;
-    padding: 16px;
-    border-top: 1px solid var(--border-color);
-    font-size: 12px;
-    color: var(--text-secondary);
-}
-
-footer a {
-    color: var(--accent-color);
-    text-decoration: underline; 
-}
+footer { text-align: center; padding: 16px; border-top: 1px solid var(--border-color); font-size: 12px; color: var(--text-secondary); }
+footer a { color: var(--accent-color); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
 
-<img src="https://regine-lambrecht.github.io/color-contrast-checker-size-weight/images/banner.png" alt="Eleven Ways Banner" class="banner" onerror="this.style.display='none'">
+<img src="https://regine-lambrecht.github.io/color-contrast-checker-size-weight/images/banner.png" alt="Banner" class="banner" onerror="this.style.display='none'">
 
 <main>
     <h1>Colour Contrast Checker</h1>
 
     <div class="input-flex-container">
         <!-- Colours Section -->
-        <fieldset class="main-fieldset colours-fieldset">
+        <fieldset class="colours-fieldset">
             <legend>Colours</legend>
+            
             <div class="input-group">
-                <label for="fg-color-text">Front colour</label>
+                <div class="label-row">
+                    <label for="fg-picker" style="flex: 0 0 34px;">Front</label>
+                    <label for="fg-alpha" style="flex: 1;">Opacity (%)</label>
+                </div>
                 <div class="color-row">
-                    <div class="color-input-wrapper">
-                        <input type="text" id="fg-color-text" value="#000000" maxlength="30" data-coloris tabindex="-1">
-                        <button id="fg-eyedropper-btn" class="eyedropper-btn" type="button" title="Pick color from screen">
-                            <i class="fa-solid fa-eye-dropper"></i>
-                        </button>
+                    <div class="color-preview-wrapper">
+                        <input type="color" id="fg-picker" value="#000000">
                     </div>
-                    <button id="fg-copy-btn" class="copy-main-btn" type="button" aria-label="Copy colour code"><i class="fa-solid fa-copy"></i></button>
+                    <input type="number" id="fg-alpha" class="opacity-input" value="100" min="0" max="100" step="1">
+                    <button id="fg-copy-btn" class="copy-main-btn"><i class="fa-solid fa-copy"></i></button>
                 </div>
             </div>
+
             <div class="input-group">
-                <label for="bg-color-text">Background</label>
+                <label for="bg-picker">Background</label>
                 <div class="color-row">
-                    <div class="color-input-wrapper">
-                        <input type="text" id="bg-color-text" value="#FFFFFF" maxlength="30" data-coloris tabindex="-1">
-                        <button id="bg-eyedropper-btn" class="eyedropper-btn" type="button" title="Pick color from screen">
-                            <i class="fa-solid fa-eye-dropper"></i>
-                        </button>
+                    <div class="color-preview-wrapper">
+                        <input type="color" id="bg-picker" value="#FFFFFF">
                     </div>
-                    <button id="bg-copy-btn" class="copy-main-btn" type="button" aria-label="Copy colour code"><i class="fa-solid fa-copy"></i></button>
+                    <div style="width: 58px;"></div>
+                    <button id="bg-copy-btn" class="copy-main-btn"><i class="fa-solid fa-copy"></i></button>
                 </div>
             </div>
         </fieldset>
 
         <!-- Font Section -->
-        <fieldset class="main-fieldset font-fieldset" id="font-fieldset-container">
+        <fieldset class="font-fieldset">
             <legend>
                 Font
                 <label class="legend-checkbox-inner">
@@ -510,10 +279,9 @@ footer a {
             </legend>
             
             <div class="font-row">
-                <!-- UPDATED: Fieldset legend for Unit label, no visible fieldset -->
-                <fieldset class="unit-fieldset">
-                    <legend>Unit</legend>
-                    <div class="unit-switcher-container">
+                <div class="input-group">
+                    <label>Unit</label>
+                    <div id="font-unit-container" class="unit-switcher-container">
                          <div class="toggle-switch">
                             <input type="radio" id="unit-px" name="font-size-unit" value="px" checked>
                             <label for="unit-px">PX</label>
@@ -521,8 +289,7 @@ footer a {
                             <label for="unit-pt">PT</label>
                          </div>
                     </div>
-                </fieldset>
-
+                </div>
                 <div class="input-group" style="flex: 1;">
                     <label for="font-size">Size</label>
                     <select id="font-size"></select>
@@ -532,29 +299,23 @@ footer a {
             <div class="input-group">
                 <label for="font-weight">Weight</label>
                 <select id="font-weight">
-                    <option value="400">&lt; 700 (regular)</option>
-                    <option value="700">≥ 700 (bold)</option>
+                    <option value="400">Less than 700 (regular)</option>
+                    <option value="700">700 or more (bold)</option>
                 </select>
             </div>
         </fieldset>
     </div>
     
-    <!-- 3-Column Results Fieldset -->
-    <fieldset class="main-fieldset results-container" id="results-container">
-        <legend id="results-legend">WCAG AA <span id="aa-text-type"></span></legend>
+    <fieldset class="results-container" id="results-container">
+        <legend>WCAG AA <span id="aa-text-type"></span></legend>
         <div class="results-3-col">
-            <!-- Left: Status Tag -->
             <div class="col-status">
                 <span class="status" id="aa-overall-status"></span>
             </div>
-            
-            <!-- Centre: Needed Ratio -->
             <div class="col-data">
                 <span class="result-label">Needed ratio</span>
                 <span class="result-value" id="needed-ratio"></span>
             </div>
-            
-            <!-- Right: Current Ratio -->
             <div class="col-data">
                 <span class="result-label">Current ratio</span>
                 <span class="result-value" id="contrast-ratio"></span>
@@ -567,49 +328,11 @@ footer a {
     </div>
 
     <div class="suggestions-container">
-        <h2>Follow any of the following suggestions</h2>
-        <div class="suggestion" id="font-suggestion" style="display: none;">
-            <div class="status suggestion-badge" id="font-suggestion-badge"></div>
-            <div class="suggestion-content">
-                <div class="suggestion-details">
-                    <span class="suggestion-text" id="font-suggestion-label"></span>
-                </div>
-                <div class="suggestion-ratio" id="font-suggestion-ratio-val"></div>
-            </div>
+        <div class="suggestions-header">
+            <h2>Follow any of the suggestions below</h2>
+            <button type="button" id="unit-toggle-btn" class="unit-toggle-btn">HEX</button>
         </div>
-
-        <div class="suggestion" id="alpha-suggestion-wrapper" style="display: none;">
-            <div class="status suggestion-badge" id="suggestion-alpha-swatch"></div>
-             <div class="suggestion-content">
-                <div class="suggestion-details">
-                    <span class="suggestion-text" id="alpha-suggestion-label"></span>
-                    <button class="copy-main-btn" id="alpha-suggestion-copy-btn" type="button" aria-label="Copy colour code"><i class="fa-solid fa-copy"></i></button>
-                </div>
-                <div class="suggestion-ratio" id="alpha-suggestion-ratio-val"></div>
-             </div>
-        </div>
-
-        <div class="suggestion" id="c1-suggestion-wrapper" style="display: none;">
-            <div class="status suggestion-badge" id="suggestion-c1-swatch"></div>
-            <div class="suggestion-content">
-                <div class="suggestion-details">
-                    <span class="suggestion-text" id="c1-suggestion-label"></span>
-                    <button class="copy-main-btn" id="c1-suggestion-copy-btn" type="button" aria-label="Copy colour code"><i class="fa-solid fa-copy"></i></button>
-                </div>
-                <div class="suggestion-ratio" id="font-suggestion-ratio-val-fixed-c1"></div>
-            </div>
-        </div>
-
-        <div class="suggestion" id="c2-suggestion-wrapper" style="display: none;">
-            <div class="status suggestion-badge" id="suggestion-c2-swatch"></div>
-            <div class="suggestion-content">
-                <div class="suggestion-details">
-                    <span class="suggestion-text" id="c2-suggestion-label"></span>
-                    <button class="copy-main-btn" id="c2-suggestion-copy-btn" type="button" aria-label="Copy colour code"><i class="fa-solid fa-copy"></i></button>
-                </div>
-                <div class="suggestion-ratio" id="font-suggestion-ratio-val-fixed-c2"></div>
-            </div>
-        </div>
+        <div id="suggestions-list" style="display: contents;"></div>
     </div>
 </main>
 
@@ -617,27 +340,18 @@ footer a {
     Made by <a href="https://elevenways.be/en" target="_blank">Eleven Ways</a>
 </footer>
 
-<script src="https://cdn.jsdelivr.net/gh/mdbassit/Coloris@latest/dist/coloris.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    /* --- INITIALIZATION --- */
-    Coloris({
-        el: '[data-coloris]',
-        themeMode: 'light',
-        alpha: true,
-        swatches: [],
-        format: 'auto',
-        formatToggle: true,
-        onChange: (color, input) => {
-            input.value = color;
-            handleInput(input.id.startsWith('fg') ? 'fg' : 'bg');
-        }
-    });
+    /* --- STATE --- */
+    const units = ['hex', 'rgb', 'hsl'];
+    let currentUnitIndex = 0; // HEX as default
 
+    /* --- DOM ELEMENTS --- */
+    const fgPicker = document.getElementById('fg-picker');
+    const fgAlpha = document.getElementById('fg-alpha');
+    const bgPicker = document.getElementById('bg-picker');
     const fontSizeSelect = document.getElementById('font-size');
     const fontWeightSelect = document.getElementById('font-weight');
-    const fgColorText = document.getElementById('fg-color-text');
-    const bgColorText = document.getElementById('bg-color-text');
     const noTextCheckbox = document.getElementById('no-text-legend-checkbox');
     const contrastRatioSpan = document.getElementById('contrast-ratio');
     const neededRatioSpan = document.getElementById('needed-ratio');
@@ -646,43 +360,52 @@ document.addEventListener('DOMContentLoaded', () => {
     const resultsContainer = document.getElementById('results-container');
     const successMessage = document.getElementById('success-message');
     const suggestionsContainer = document.querySelector('.suggestions-container');
+    const suggestionsList = document.getElementById('suggestions-list');
+    const unitToggleBtn = document.getElementById('unit-toggle-btn');
+    const fontUnitContainer = document.getElementById('font-unit-container');
     const fgCopyBtn = document.getElementById('fg-copy-btn');
     const bgCopyBtn = document.getElementById('bg-copy-btn');
 
-    /* --- Selection Logic --- */
-    document.addEventListener('mouseup', (e) => {
-        if (e.target && e.target.id === 'clr-color-value') {
-            e.target.select();
-        }
-    });
-
-    document.addEventListener('coloris:show', () => {
-        setTimeout(() => {
-            const pickerInput = document.getElementById('clr-color-value');
-            if (pickerInput) {
-                pickerInput.focus();
-                pickerInput.select();
-                pickerInput.setSelectionRange(0, pickerInput.value.length);
-            }
-        }, 50);
-    });
-
-    /* --- EVENT LISTENERS --- */
-    const triggerCheck = () => checkContrast(fgColorText.value, bgColorText.value);
-
-    const handleInput = (prefix) => {
-        updateCopyTooltips();
-        triggerCheck();
+    /* --- HELPERS --- */
+    const hexToRgb = (hex) => {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : null;
     };
 
-    fgColorText.addEventListener('mousedown', () => document.body.classList.remove('bg-picker-active'));
-    bgColorText.addEventListener('mousedown', () => document.body.classList.add('bg-picker-active'));
+    const rgbToHex = (rgb) => {
+        const toH = (v) => Math.round(v).toString(16).padStart(2, '0');
+        const hex = "#" + toH(rgb.r) + toH(rgb.g) + toH(rgb.b);
+        if (rgb.a !== undefined && rgb.a < 1) {
+            return hex + toH(Math.round(rgb.a * 255));
+        }
+        return hex;
+    };
 
-    fgColorText.addEventListener('input', () => handleInput('fg'));
-    bgColorText.addEventListener('input', () => handleInput('bg'));
-    fontSizeSelect.addEventListener('change', triggerCheck);
-    fontWeightSelect.addEventListener('change', triggerCheck);
-    
+    const getFullFgRgb = () => {
+        const rgb = hexToRgb(fgPicker.value);
+        let aValue = fgAlpha.value;
+        if (aValue === "" || aValue === undefined) aValue = 100;
+        const a = Math.max(0, Math.min(100, parseInt(aValue))) / 100;
+        return { ...rgb, a };
+    };
+
+    const getBgRgb = () => {
+        return hexToRgb(bgPicker.value);
+    };
+
+    const triggerCheck = () => checkContrast();
+
+    /* --- LISTENERS --- */
+    [fgPicker, fgAlpha, bgPicker, fontSizeSelect, fontWeightSelect, noTextCheckbox].forEach(el => {
+        el.addEventListener('input', triggerCheck);
+    });
+
+    unitToggleBtn.addEventListener('click', () => {
+        currentUnitIndex = (currentUnitIndex + 1) % units.length;
+        unitToggleBtn.textContent = units[currentUnitIndex].toUpperCase();
+        triggerCheck(); 
+    });
+
     document.querySelectorAll('input[name="font-size-unit"]').forEach(radio => {
         radio.addEventListener('change', () => {
             updateFontSizeOptions();
@@ -692,17 +415,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     noTextCheckbox.addEventListener('change', (e) => {
         const isNoText = e.target.checked;
-        const unitContainer = document.querySelector('.unit-switcher-container');
-        unitContainer.classList.toggle('disabled', isNoText);
-        document.querySelectorAll('input[name="font-size-unit"]').forEach(r => r.disabled = isNoText);
         fontSizeSelect.disabled = isNoText;
         fontWeightSelect.disabled = isNoText;
+        const radios = document.querySelectorAll('input[name="font-size-unit"]');
+        radios.forEach(r => r.disabled = isNoText);
+        if (isNoText) fontUnitContainer.classList.add('disabled');
+        else fontUnitContainer.classList.remove('disabled');
         triggerCheck();
     });
 
-    document.getElementById('fg-eyedropper-btn').addEventListener('click', () => pickColor(fgColorText));
-    document.getElementById('bg-eyedropper-btn').addEventListener('click', () => pickColor(bgColorText));
-
+    /* Copy Logic */
     const copyToClipboard = (btn, text) => {
         const textArea = document.createElement("textarea");
         textArea.value = text;
@@ -710,32 +432,27 @@ document.addEventListener('DOMContentLoaded', () => {
         textArea.style.left = "-9999px";
         document.body.appendChild(textArea);
         textArea.select();
-        try {
-            if (document.execCommand('copy')) {
-                const icon = btn.querySelector('i');
-                const originalClass = icon ? icon.className : '';
-                if (icon) icon.className = 'fa-solid fa-check';
-                btn.classList.add('success');
-                setTimeout(() => {
-                    if (icon) icon.className = originalClass;
-                    btn.classList.remove('success');
-                }, 1500);
-            }
-        } catch (err) {}
+        document.execCommand('copy');
+        const icon = btn.querySelector('i');
+        if (icon) {
+            icon.className = 'fa-solid fa-check';
+            setTimeout(() => { icon.className = 'fa-solid fa-copy'; }, 1500);
+        }
         document.body.removeChild(textArea);
     };
 
-    fgCopyBtn.addEventListener('click', () => copyToClipboard(fgCopyBtn, fgColorText.value));
-    bgCopyBtn.addEventListener('click', () => copyToClipboard(bgCopyBtn, bgColorText.value));
+    fgCopyBtn.addEventListener('click', (e) => {
+        const str = formatColor(getFullFgRgb(), units[currentUnitIndex]);
+        copyToClipboard(e.currentTarget, str);
+    });
 
-    function updateCopyTooltips() {
-        fgCopyBtn.title = `Copy ${fgColorText.value}`;
-        bgCopyBtn.title = `Copy ${bgColorText.value}`;
-    }
+    bgCopyBtn.addEventListener('click', (e) => {
+        const str = formatColor(getBgRgb(), units[currentUnitIndex]);
+        copyToClipboard(e.currentTarget, str);
+    });
 
     function updateFontSizeOptions() {
-        const unitEl = document.querySelector('input[name="font-size-unit"]:checked');
-        const unit = unitEl ? unitEl.value : 'px';
+        const unit = document.querySelector('input[name="font-size-unit"]:checked').value;
         const currentVal = fontSizeSelect.value;
         fontSizeSelect.innerHTML = '';
         let options = unit === 'pt' ? 
@@ -750,30 +467,32 @@ document.addEventListener('DOMContentLoaded', () => {
         fontSizeSelect.value = options.find(o => o.value == currentVal) ? currentVal : options[0].value;
     }
 
-    function checkContrast(fgColor, bgColor) {
+    function checkContrast() {
         const isNonText = noTextCheckbox.checked;
-        const fgParsed = parseColorToRgb(fgColor);
-        const bgParsed = parseColorToRgb(bgColor);
+        const fgRaw = getFullFgRgb(); 
+        const bgRgb = getBgRgb();
+        const activeUnit = units[currentUnitIndex];
 
-        if (!fgParsed || !bgParsed) {
-            suggestionsContainer.style.display = 'none';
-            successMessage.style.display = 'none';
-            contrastRatioSpan.textContent = '-';
-            contrastRatioSpan.style.color = '';
-            resultsContainer.style.borderColor = '';
-            return;
-        }
+        fgPicker.style.opacity = fgRaw.a;
 
-        const fgRgb = fgParsed.a < 1 ? flattenColor(fgParsed, bgParsed) : fgParsed;
-        const ratio = getContrastRatio(fgRgb, bgParsed);
+        // Sync main copy button tooltips
+        fgCopyBtn.title = formatColor(fgRaw, activeUnit);
+        bgCopyBtn.title = formatColor(bgRgb, activeUnit);
+
+        const fgFlattened = {
+            r: Math.round(fgRaw.a * fgRaw.r + (1 - fgRaw.a) * bgRgb.r),
+            g: Math.round(fgRaw.a * fgRaw.g + (1 - fgRaw.a) * bgRgb.g),
+            b: Math.round(fgRaw.a * fgRaw.b + (1 - fgRaw.a) * bgRgb.b)
+        };
+
+        const ratio = getContrastRatio(fgFlattened, bgRgb);
         contrastRatioSpan.textContent = ratio.toFixed(2);
 
         let needed = 4.5;
         let isLarge = false;
         if (!isNonText) {
             const fs = parseFloat(fontSizeSelect.value);
-            const unitEl = document.querySelector('input[name="font-size-unit"]:checked');
-            const unit = unitEl ? unitEl.value : 'px';
+            const unit = document.querySelector('input[name="font-size-unit"]:checked').value;
             const weight = parseInt(fontWeightSelect.value, 10);
             if (unit === 'pt') isLarge = (fs >= 18) || (fs >= 14 && weight >= 700);
             else isLarge = (fs >= 24) || (fs >= 18.66 && weight >= 700);
@@ -783,20 +502,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const passes = ratio >= needed;
-        const resultColor = passes ? 'var(--pass-color)' : 'var(--fail-color)';
-        contrastRatioSpan.style.color = resultColor;
-        resultsContainer.style.borderColor = resultColor;
-
+        const resColor = passes ? 'var(--pass-color)' : 'var(--fail-color)';
+        contrastRatioSpan.style.color = resColor;
+        resultsContainer.style.borderColor = resColor;
         neededRatioSpan.textContent = needed.toFixed(2);
 
-        if (isNonText) {
-            aaOverallStatusSpan.innerHTML = passes ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-xmark"></i>';
-        } else {
-            aaOverallStatusSpan.textContent = passes ? 'PASS' : 'FAIL';
-        }
-
-        aaOverallStatusSpan.style.color = fgColor;
-        aaOverallStatusSpan.style.backgroundColor = bgColor;
+        aaOverallStatusSpan.innerHTML = passes ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-xmark"></i>';
+        aaOverallStatusSpan.style.color = rgbToHex(fgFlattened);
+        aaOverallStatusSpan.style.backgroundColor = bgPicker.value;
         aaTextTypeSpan.textContent = isNonText ? '(Graphics/UI)' : `(${isLarge ? 'Large text' : 'Normal text'})`;
 
         if (passes) {
@@ -805,108 +518,177 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             suggestionsContainer.style.display = 'flex';
             successMessage.style.display = 'none';
-            generateSuggestions(fgColor, bgColor, fgParsed, bgParsed, needed, isNonText, isLarge, ratio);
+            generateSuggestions(fgRaw, bgRgb, needed, isNonText, isLarge, ratio);
         }
     }
 
-    function setupSuggestionBtn(btn, text) {
-        btn.innerHTML = '<i class="fa-solid fa-copy"></i>';
-        btn.title = `Copy ${text}`;
-        btn.onclick = (e) => { e.stopPropagation(); copyToClipboard(btn, text); };
-    }
-
-    function generateSuggestions(fgColor, bgColor, fgParsed, bgParsed, needed, isNonText, isLarge, currentRatio) {
-        ['font', 'alpha', 'c1', 'c2'].forEach(t => {
-            const wrapper = document.getElementById(t === 'font' ? 'font-suggestion' : t + '-suggestion-wrapper');
-            if (wrapper) wrapper.style.display = 'none';
-        });
-
-        const fgFormat = getColorFormat(fgColor), bgFormat = getColorFormat(bgColor);
-        const currentFgFormatted = formatColor(fgParsed, fgFormat), currentBgFormatted = formatColor(bgParsed, bgFormat);
-
-        const styleBadge = (badge, f, b, isPass) => {
-            if (isNonText) badge.innerHTML = isPass ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-xmark"></i>';
-            else badge.textContent = isPass ? 'PASS' : 'FAIL';
-            badge.style.color = f; badge.style.backgroundColor = b;
-        };
+    function generateSuggestions(fgRaw, bgRgb, needed, isNonText, isLarge, currentRatio) {
+        suggestionsList.innerHTML = '';
+        const fontUnit = document.querySelector('input[name="font-size-unit"]:checked').value;
+        const activeUnit = units[currentUnitIndex];
 
         if (!isNonText && !isLarge && currentRatio >= 3.0) {
-            const s = document.getElementById('font-suggestion');
-            s.style.display = 'flex';
-            const b = document.getElementById('font-suggestion-badge');
-            b.textContent = 'PASS'; b.style.color = fgColor; b.style.backgroundColor = bgColor;
-            b.style.fontSize = "18.66px"; b.style.fontWeight = "700";
-            document.getElementById('font-suggestion-label').textContent = `Enlarge text: min 18.66px (14pt) bold or 24px (18pt) regular.`;
-            document.getElementById('font-suggestion-ratio-val').textContent = `Ratio: ${currentRatio.toFixed(2)} with Front ${currentFgFormatted} and Background ${currentBgFormatted}`;
+            const div = document.createElement('div');
+            div.className = 'suggestion';
+            const req = (fontUnit === 'px') ? `min 18.66px bold or 24px regular.` : `min 14pt bold or 18pt regular.`;
+            div.innerHTML = `
+                <div class="status" style="color:${fgPicker.value}; opacity:${fgRaw.a}; background-color:${bgPicker.value};">PASS</div>
+                <div style="flex-grow:1;">
+                    <div style="color:var(--text-secondary); font-weight:500;">Enlarge text: ${req}</div>
+                    <div style="font-size:12px; color:var(--text-secondary);">Ratio: ${currentRatio.toFixed(2)}</div>
+                </div>
+            `;
+            suggestionsList.appendChild(div);
         }
 
-        if (fgParsed.a < 1) {
-            const pA = findPassingAlpha(fgParsed, bgParsed, needed);
+        const solidFg = { r: fgRaw.r, g: fgRaw.g, b: fgRaw.b, a: 1.0 };
+        const solidRatio = getContrastRatio(solidFg, bgRgb);
+        
+        if (solidRatio >= needed && currentRatio < needed) {
+            const pA = findPassingAlpha(fgRaw, bgRgb, needed);
             if (pA) {
-                const wrapper = document.getElementById('alpha-suggestion-wrapper'); wrapper.style.display = 'flex';
-                const str = formatColor(fgParsed, fgFormat, pA);
-                styleBadge(document.getElementById('suggestion-alpha-swatch'), str, bgColor, true);
-                document.getElementById('alpha-suggestion-label').innerHTML = `Set Front Alpha to <span class="suggestion-hex">${str}</span>`;
-                document.getElementById('alpha-suggestion-ratio-val').textContent = `Ratio: ${needed.toFixed(2)} with ${currentBgFormatted}`;
-                setupSuggestionBtn(document.getElementById('alpha-suggestion-copy-btn'), str);
+                const opacityPercent = Math.round(pA * 100) + '%';
+                const colorWithSuggestedAlpha = { ...fgRaw, a: pA };
+                const colorStr = formatColor(colorWithSuggestedAlpha, activeUnit);
+                
+                const div = document.createElement('div');
+                div.className = 'suggestion';
+                div.innerHTML = `
+                    <div class="status" style="color: ${fgPicker.value}; opacity: ${pA}; background-color: ${bgPicker.value};">PASS</div>
+                    <div style="flex-grow:1; display:flex; flex-direction:column;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="color:var(--text-secondary);">Set <b>Front opacity</b> to <b style="font-family:monospace;">${opacityPercent}</b></span>
+                            <button class="copy-main-btn" type="button" title="${colorStr}"><i class="fa-solid fa-copy"></i></button>
+                        </div>
+                        <span style="font-size:12px; color:var(--text-secondary);">Ratio: ${needed.toFixed(2)}</span>
+                    </div>
+                `;
+                // Copies the full color string with requested alpha
+                div.querySelector('button').onclick = () => copyToClipboard(div.querySelector('button'), colorStr);
+                suggestionsList.appendChild(div);
             }
         }
 
-        const sFg = findPassingColor(fgParsed.a < 1 ? flattenColor(fgParsed, bgParsed) : fgParsed, bgParsed, needed);
-        if (sFg) {
-            const wrapper = document.getElementById('c1-suggestion-wrapper'); wrapper.style.display = 'flex';
-            const suggestedFgStr = formatColor(sFg.rgb, fgFormat);
-            styleBadge(document.getElementById('suggestion-c1-swatch'), suggestedFgStr, bgColor, true);
-            document.getElementById('c1-suggestion-label').innerHTML = `Replace Front with <span class="suggestion-hex">${suggestedFgStr}</span>`;
-            const rVal = document.getElementById('font-suggestion-ratio-val-fixed-c1') || document.getElementById('c1-suggestion-ratio-val');
-            if (rVal) rVal.textContent = `Ratio: ${sFg.ratio.toFixed(2)} with ${currentBgFormatted}`;
-            setupSuggestionBtn(document.getElementById('c1-suggestion-copy-btn'), suggestedFgStr);
-        }
+        const addSugg = (label, colorRgb, ratioVal) => {
+            const div = document.createElement('div');
+            div.className = 'suggestion';
+            const colorStr = formatColor(colorRgb, activeUnit);
+            
+            let badgeFg = fgPicker.value;
+            let badgeBg = bgPicker.value;
+            let badgeAlpha = fgRaw.a;
 
-        const sBg = findPassingColor(bgParsed, fgParsed.a < 1 ? flattenColor(fgParsed, bgParsed) : fgParsed, needed);
-        if (sBg) {
-            const wrapper = document.getElementById('c2-suggestion-wrapper'); wrapper.style.display = 'flex';
-            const suggestedBgStr = formatColor(sBg.rgb, bgFormat);
-            styleBadge(document.getElementById('suggestion-c2-swatch'), fgColor, suggestedBgStr, true);
-            document.getElementById('c2-suggestion-label').innerHTML = `Replace Background with <span class="suggestion-hex">${suggestedBgStr}</span>`;
-            const rVal = document.getElementById('font-suggestion-ratio-val-fixed-c2') || document.getElementById('c2-suggestion-ratio-val');
-            if (rVal) rVal.textContent = `Ratio: ${sBg.ratio.toFixed(2)} with ${currentFgFormatted}`;
-            setupSuggestionBtn(document.getElementById('c2-suggestion-copy-btn'), suggestedBgStr);
-        }
+            if (label.includes('Background')) {
+                badgeBg = rgbToHex(colorRgb);
+            } else {
+                badgeFg = rgbToHex(colorRgb);
+            }
+
+            div.innerHTML = `
+                <div class="status" style="color: ${badgeFg}; opacity: ${badgeAlpha}; background-color: ${badgeBg};">PASS</div>
+                <div style="flex-grow:1; display:flex; flex-direction:column;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="color:var(--text-secondary);">${label} <b style="font-family:monospace;">${colorStr}</b></span>
+                        <button class="copy-main-btn" type="button" title="${colorStr}"><i class="fa-solid fa-copy"></i></button>
+                    </div>
+                    <span style="font-size:12px; color:var(--text-secondary);">Ratio: ${ratioVal.toFixed(2)}</span>
+                </div>
+            `;
+            div.querySelector('button').onclick = () => copyToClipboard(div.querySelector('button'), colorStr);
+            suggestionsList.appendChild(div);
+        };
+
+        const sFg = findPassingFgColor(fgRaw, bgRgb, fgRaw.a, needed);
+        if (sFg) addSugg(`Replace <b>Front</b> with`, sFg.rgb, sFg.ratio);
+
+        const sBg = findPassingBgColor(fgRaw, bgRgb, fgRaw.a, needed);
+        if (sBg) addSugg(`Replace <b>Background</b> with`, sBg.rgb, sBg.ratio);
     }
 
+    /* --- MATH CORE --- */
     function getLuminance(rgb) {
         const [r, g, b] = [rgb.r, rgb.g, rgb.b].map(c => {
             c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
         });
         return 0.2126 * r + 0.7152 * g + 0.0722 * b;
     }
+
     function getContrastRatio(rgb1, rgb2) {
         const l1 = getLuminance(rgb1), l2 = getLuminance(rgb2);
         return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
     }
-    function flattenColor(fg, bg) {
-        return { r: Math.round(fg.a * fg.r + (1 - fg.a) * bg.r), g: Math.round(fg.a * fg.g + (1 - fg.a) * bg.g), b: Math.round(fg.a * fg.b + (1 - fg.a) * bg.b) };
+
+    function findPassingFgColor(fgSolid, bg, alpha, neededRatio) {
+        const hsl = rgbToHsl(fgSolid);
+        const lBg = getLuminance(bg);
+        const direction = lBg > 0.5 ? -1 : 1;
+        
+        for (let step = 0; step <= 100; step++) {
+            const newL = Math.max(0, Math.min(1, hsl.l + (step * 0.01 * direction)));
+            const candSolid = hslToRgb({ ...hsl, l: newL });
+            const blended = {
+                r: Math.round(alpha * candSolid.r + (1 - alpha) * bg.r),
+                g: Math.round(alpha * candSolid.g + (1 - alpha) * bg.g),
+                b: Math.round(alpha * candSolid.b + (1 - alpha) * bg.b)
+            };
+            const ratio = getContrastRatio(blended, bg);
+            if (ratio >= neededRatio) return { rgb: candSolid, ratio: ratio };
+        }
+        return null;
     }
-    function parseColorToRgb(str) {
-        const div = document.createElement('div'); div.style.color = str; document.body.appendChild(div);
-        const computed = getComputedStyle(div).color; document.body.removeChild(div);
-        const match = computed.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
-        return match ? { r: +match[1], g: +match[2], b: +match[3], a: match[4] !== undefined ? +match[4] : 1 } : null;
+
+    function findPassingBgColor(fgSolid, bgSolid, alpha, neededRatio) {
+        const hsl = rgbToHsl(bgSolid);
+        const lFgBlended = getLuminance({
+            r: Math.round(alpha * fgSolid.r + (1 - alpha) * bgSolid.r),
+            g: Math.round(alpha * fgSolid.g + (1 - alpha) * bgSolid.g),
+            b: Math.round(alpha * fgSolid.b + (1 - alpha) * bgSolid.b)
+        });
+        const direction = lFgBlended > 0.5 ? -1 : 1;
+
+        for (let step = 0; step <= 100; step++) {
+            const newL = Math.max(0, Math.min(1, hsl.l + (step * 0.01 * direction)));
+            const candBg = hslToRgb({ ...hsl, l: newL });
+            const blended = {
+                r: Math.round(alpha * fgSolid.r + (1 - alpha) * candBg.r),
+                g: Math.round(alpha * fgSolid.g + (1 - alpha) * candBg.g),
+                b: Math.round(alpha * fgSolid.b + (1 - alpha) * candBg.b)
+            };
+            const ratio = getContrastRatio(blended, candBg);
+            if (ratio >= neededRatio) return { rgb: candBg, ratio: ratio };
+        }
+        return null;
     }
-    function getColorFormat(str) { if (str.startsWith('rgb')) return 'rgb'; if (str.startsWith('hsl')) return 'hsl'; return 'hex'; }
-    function formatColor(rgbObj, format, alphaOverride = null) {
-        const a = alphaOverride !== null ? alphaOverride : (rgbObj.a !== undefined ? rgbObj.a : 1.0);
-        if (format === 'rgb') return a < 1 ? `rgba(${rgbObj.r}, ${rgbObj.g}, ${rgbObj.b}, ${a.toFixed(2)})` : `rgb(${rgbObj.r}, ${rgbObj.g}, ${rgbObj.b})`;
+
+    function findPassingAlpha(fg, bg, needed) {
+        for (let a = 0.01; a <= 1.0; a += 0.01) { 
+            const blended = {
+                r: Math.round(a * fg.r + (1 - a) * bg.r),
+                g: Math.round(a * fg.g + (1 - a) * bg.g),
+                b: Math.round(a * fg.b + (1 - a) * bg.b)
+            };
+            if (getContrastRatio(blended, bg) >= needed) return parseFloat(a.toFixed(2)); 
+        }
+        return null;
+    }
+
+    function formatColor(rgbObj, format) {
+        const a = rgbObj.a !== undefined ? rgbObj.a : 1.0;
+        if (format === 'rgb') {
+            return a < 1 ? `rgba(${rgbObj.r}, ${rgbObj.g}, ${rgbObj.b}, ${a.toFixed(2)})` : `rgb(${rgbObj.r}, ${rgbObj.g}, ${rgbObj.b})`;
+        }
         if (format === 'hsl') {
             const { h, s, l } = rgbToHsl(rgbObj);
-            const H = Math.round(h * 360), S = Math.round(s * 100), L = Math.round(l * 100);
-            return a < 1 ? `hsla(${H}, ${S}%, ${L}%, ${a.toFixed(2)})` : `hsl(${H}, ${S}%, ${L}%)`;
+            const hh = Math.round(h * 360), ss = Math.round(s * 100), ll = Math.round(l * 100);
+            return a < 1 ? `hsla(${hh}, ${ss}%, ${ll}%, ${a.toFixed(2)})` : `hsl(${hh}, ${ss}%, ${ll}%)`;
         }
+        // Default HEX
         const toH = (v) => Math.round(v).toString(16).padStart(2, '0');
-        const hex = "#" + toH(rgbObj.r) + toH(rgbObj.g) + toH(rgbObj.b);
-        return (format === 'hex' && a < 1) ? hex + toH(a * 255) : hex;
+        let hex = "#" + toH(rgbObj.r) + toH(rgbObj.g) + toH(rgbObj.b);
+        if (a < 1) hex += toH(Math.round(a * 255));
+        return hex;
     }
+
     function rgbToHsl(rgb) {
         let r = rgb.r / 255, g = rgb.g / 255, b = rgb.b / 255, max = Math.max(r, g, b), min = Math.min(r, g, b), h, s, l = (max + min) / 2;
         if (max === min) h = s = 0;
@@ -917,6 +699,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return { h, s, l };
     }
+
     function hslToRgb(hsl) {
         let h = hsl.h, s = hsl.s, l = hsl.l, r, g, b;
         if (s === 0) r = g = b = l;
@@ -926,24 +709,6 @@ document.addEventListener('DOMContentLoaded', () => {
             r = h2r(p, q, h + 1/3); g = h2r(p, q, h); b = h2r(p, q, h - 1/3);
         }
         return { r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255) };
-    }
-    function findPassingColor(color, target, ratio) {
-        const hsl = rgbToHsl(color), lTarget = getLuminance(target), direction = lTarget > 0.5 ? -1 : 1;
-        for (let step = 0; step <= 100; step++) {
-            const newL = Math.max(0, Math.min(1, hsl.l + (step * 0.01 * direction)));
-            const rgb = hslToRgb({ ...hsl, l: newL });
-            if (getContrastRatio(rgb, target) >= ratio) return { rgb, ratio: getContrastRatio(rgb, target) };
-        }
-        return null;
-    }
-    function findPassingAlpha(fg, bg, needed) {
-        for (let a = 0.01; a <= 0.99; a += 0.01) { if (getContrastRatio(flattenColor({ ...fg, a }, bg), bg) >= needed) return a; }
-        return null;
-    }
-    async function pickColor(inputElement) {
-        if (!window.EyeDropper) return;
-        const eyeDropper = new EyeDropper();
-        try { const result = await eyeDropper.open(); inputElement.value = result.sRGBHex; inputElement.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
     }
 
     updateFontSizeOptions();

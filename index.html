@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
+<!-- saved from url=(0070)https://regine-lambrecht.github.io/color-contrast-checker-size-weight/ -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Colour Contrast Checker Pro</title>
     
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
 /* --- UI STYLING --- */
@@ -26,9 +26,10 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     background-color: var(--bg-color);
     color: var(--text-primary);
-    width: 440px;
+    width: 100%;
+    max-width: 440px;
     padding: 0;
-    margin: 0;
+    margin: 0 auto;
     font-size: 14px;
     display: flex;
     flex-direction: column;
@@ -287,8 +288,6 @@ footer a { color: var(--accent-color); text-decoration: underline; }
 </head>
 <body>
 
-<img src="https://regine-lambrecht.github.io/color-contrast-checker-size-weight/images/banner.png" alt="Eleven Ways" class="banner" onerror="this.style.display='none'">
-
 <main>
     <h1>Colour Contrast Checker</h1>
 
@@ -305,7 +304,7 @@ footer a { color: var(--accent-color); text-decoration: underline; }
                         <input type="color" id="fg-picker" value="#000000">
                     </div>
                     <input type="number" id="fg-alpha" class="opacity-input" value="100" min="0" max="100" step="1">
-                    <button id="fg-copy-btn" class="copy-main-btn"><i class="fa-solid fa-copy"></i></button>
+                    <button id="fg-copy-btn" class="copy-main-btn" title="Copy color"><i class="fa-solid fa-copy"></i></button>
                 </div>
             </div>
             <div class="input-group">
@@ -315,7 +314,7 @@ footer a { color: var(--accent-color); text-decoration: underline; }
                         <input type="color" id="bg-picker" value="#FFFFFF">
                     </div>
                     <div style="width: 58px;"></div>
-                    <button id="bg-copy-btn" class="copy-main-btn"><i class="fa-solid fa-copy"></i></button>
+                    <button id="bg-copy-btn" class="copy-main-btn" title="Copy color"><i class="fa-solid fa-copy"></i></button>
                 </div>
             </div>
         </fieldset>
@@ -333,7 +332,7 @@ footer a { color: var(--accent-color); text-decoration: underline; }
                     <legend>Unit</legend>
                     <div id="font-unit-container" class="unit-switcher-container">
                          <div class="toggle-switch">
-                            <input type="radio" id="unit-px" name="font-size-unit" value="px" checked>
+                            <input type="radio" id="unit-px" name="font-size-unit" value="px" checked="">
                             <label for="unit-px">PX</label>
                             <input type="radio" id="unit-pt" name="font-size-unit" value="pt">
                             <label for="unit-pt">PT</label>
@@ -342,7 +341,11 @@ footer a { color: var(--accent-color); text-decoration: underline; }
                 </fieldset>
                 <div class="input-group" style="flex: 1;">
                     <label for="font-size">Size</label>
-                    <select id="font-size"></select>
+                    <select id="font-size">
+                        <option value="16">Less than 18.66</option>
+                        <option value="18.66">18.66 to 23.99</option>
+                        <option value="24">24 or more</option>
+                    </select>
                 </div>
             </div>
             <div class="input-group">
@@ -356,19 +359,19 @@ footer a { color: var(--accent-color); text-decoration: underline; }
     </div>
     
     <fieldset class="results-container" id="results-container">
-        <legend>WCAG AA <span id="aa-text-type"></span></legend>
+        <legend>WCAG AA <span id="aa-text-type">(Normal text)</span></legend>
         <div class="results-3-col">
             <div class="col-status">
-                <span class="status" id="aa-overall-status" aria-hidden="true"></span>
-                <span id="status-announcer" class="sr-only" role="status" aria-atomic="true"></span>
+                <span class="status" id="aa-overall-status" aria-hidden="true">FAIL</span>
+                <span id="status-announcer" class="sr-only" role="status" aria-atomic="true">Fails</span>
             </div>
             <div class="col-data">
                 <h2 class="result-label">Needed ratio</h2>
-                <span class="result-value" id="needed-ratio"></span>
+                <span class="result-value" id="needed-ratio">4.50</span>
             </div>
             <div class="col-data">
                 <h2 class="result-label">Current ratio</h2>
-                <span class="result-value" id="contrast-ratio"></span>
+                <span class="result-value" id="contrast-ratio">3.26</span>
             </div>
         </div>
     </fieldset>
@@ -379,7 +382,7 @@ footer a { color: var(--accent-color); text-decoration: underline; }
 
     <div class="suggestions-container">
         <div class="suggestions-header">
-            <h2>Follow any of the following suggestions</h2>
+            <h2>Follow any of the suggestions below</h2>
             <button type="button" id="unit-toggle-btn" class="unit-toggle-btn">HEX</button>
         </div>
         <div id="suggestions-list" style="display: contents;"></div>
@@ -460,9 +463,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const hh = Math.round(h * 360), ss = Math.round(s * 100), ll = Math.round(l * 100);
             return a < 1 ? `hsla(${hh}, ${ss}%, ${ll}%, ${a.toFixed(2)})` : `hsl(${hh}, ${ss}%, ${ll}%)`;
         }
+        // HEX Format: specific logic for opacity percentage
         const toH = (v) => Math.round(v).toString(16).padStart(2, '0');
         let hex = "#" + toH(rgbObj.r) + toH(rgbObj.g) + toH(rgbObj.b);
-        if (a < 1) hex += toH(Math.round(a * 255));
+        if (a < 1) return `${hex} ${Math.round(a * 100)}%`;
         return hex;
     };
 
@@ -607,7 +611,10 @@ document.addEventListener('DOMContentLoaded', () => {
         suggestionsList.innerHTML = '';
         const activeUnit = units[currentUnitIndex];
         const currentBgHex = bgPicker.value;
-        const currentFrontAlphaHex = formatColor(fgRaw, 'hex');
+        const currentBgActive = formatColor(bgRgb, activeUnit);
+        const currentFrontActive = formatColor(fgRaw, activeUnit);
+        const currentFrontAlphaValidHex = rgbToHex(fgRaw); // For CSS styles only
+        
         let count = 0;
 
         const addS = (html) => { const d = document.createElement('div'); d.className = 'suggestion'; d.innerHTML = html; suggestionsList.appendChild(d); count++; return d; };
@@ -621,9 +628,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // 1. Enlarge text
         if (!isNonText && !isLarge && currentRatio >= 3.0) {
             const req = (document.querySelector('input[name="font-size-unit"]:checked').value === 'px') ? 'min 18.66px bold or 24px regular.' : 'min 14pt bold or 18pt regular.';
-            addS(`<div class="status" style="color:${currentFrontAlphaHex}; background-color:${currentBgHex}; padding: 0;">${getBadgeHTML(true, currentFrontAlphaHex, currentBgHex, true)}</div>
+            addS(`<div class="status" style="color:${currentFrontAlphaValidHex}; background-color:${currentBgHex}; padding: 0;">${getBadgeHTML(true, currentFrontAlphaValidHex, currentBgHex, true)}</div>
                   <div style="flex-grow:1;"><div style="color:var(--text-secondary); font-weight:500;">Enlarge text: ${req}</div>
-                  <div style="font-size:12px; color:var(--text-secondary);">Ratio: ${currentRatio.toFixed(2)} with Background ${currentBgHex}</div></div>`);
+                  <div style="font-size:12px; color:var(--text-secondary);">Ratio: ${currentRatio.toFixed(2)} with Background ${currentBgActive}</div></div>`);
         }
 
         // 2. Opacity
@@ -632,13 +639,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const pA = findPassingAlpha(fgRaw, bgRgb, needed);
             if (pA) {
                 const colorStr = formatColor({ ...fgRaw, a: pA }, activeUnit);
-                const el = addS(`<div class="status" style="color:${formatColor({ ...fgRaw, a: pA }, 'hex')}; background-color:${currentBgHex};">${getBadgeHTML(true)}</div>
+                const badgeColor = rgbToHex({ ...fgRaw, a: pA });
+                const el = addS(`<div class="status" style="color:${badgeColor}; background-color:${currentBgHex};">${getBadgeHTML(true)}</div>
                     <div style="flex-grow:1; display:flex; flex-direction:column;">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <span style="color:var(--text-secondary);">Set <b>Front opacity</b> to <b style="font-family:monospace;">${Math.round(pA * 100)}%</b></span>
                             <button class="copy-main-btn" type="button" title="${colorStr}"><i class="fa-solid fa-copy"></i></button>
                         </div>
-                        <span style="font-size:12px; color:var(--text-secondary);">Ratio: ${needed.toFixed(2)} with Background ${currentBgHex}</span>
+                        <span style="font-size:12px; color:var(--text-secondary);">Ratio: ${needed.toFixed(2)} with Background ${currentBgActive}</span>
                     </div>`);
                 el.querySelector('button').onclick = () => copyToClipboard(el.querySelector('button'), colorStr);
             }
@@ -648,13 +656,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const sFg = findPassingFgColor(fgRaw, bgRgb, fgRaw.a, needed);
         if (sFg) {
             const colorStr = formatColor({ ...sFg.rgb, a: fgRaw.a }, activeUnit);
-            const el = addS(`<div class="status" style="color:${formatColor({ ...sFg.rgb, a: fgRaw.a }, 'hex')}; background-color:${currentBgHex};">${getBadgeHTML(true)}</div>
+            const badgeColor = rgbToHex({ ...sFg.rgb, a: fgRaw.a });
+            const el = addS(`<div class="status" style="color:${badgeColor}; background-color:${currentBgHex};">${getBadgeHTML(true)}</div>
                 <div style="flex-grow:1; display:flex; flex-direction:column;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <span style="color:var(--text-secondary);">Replace <b>Front</b> with <b style="font-family:monospace;">${colorStr}</b></span>
                         <button class="copy-main-btn" type="button" title="${colorStr}"><i class="fa-solid fa-copy"></i></button>
                     </div>
-                    <span style="font-size:12px; color:var(--text-secondary);">Ratio: ${sFg.ratio.toFixed(2)} with Background ${currentBgHex}</span>
+                    <span style="font-size:12px; color:var(--text-secondary);">Ratio: ${sFg.ratio.toFixed(2)} with Background ${currentBgActive}</span>
                 </div>`);
             el.querySelector('button').onclick = () => copyToClipboard(el.querySelector('button'), colorStr);
         }
@@ -663,13 +672,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const sBg = findPassingBgColor(fgRaw, bgRgb, fgRaw.a, needed);
         if (sBg) {
             const colorStr = formatColor(sBg.rgb, activeUnit);
-            const el = addS(`<div class="status" style="color:${currentFrontAlphaHex}; background-color:${rgbToHex(sBg.rgb)};">${getBadgeHTML(true)}</div>
+            const badgeBgColor = rgbToHex(sBg.rgb);
+            const el = addS(`<div class="status" style="color:${currentFrontAlphaValidHex}; background-color:${badgeBgColor};">${getBadgeHTML(true)}</div>
                 <div style="flex-grow:1; display:flex; flex-direction:column;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <span style="color:var(--text-secondary);">Replace <b>Background</b> with <b style="font-family:monospace;">${colorStr}</b></span>
                         <button class="copy-main-btn" type="button" title="${colorStr}"><i class="fa-solid fa-copy"></i></button>
                     </div>
-                    <span style="font-size:12px; color:var(--text-secondary);">Ratio: ${sBg.ratio.toFixed(2)} with Front ${formatColor(fgRaw, activeUnit)}</span>
+                    <span style="font-size:12px; color:var(--text-secondary);">Ratio: ${sBg.ratio.toFixed(2)} with Front ${currentFrontActive}</span>
                 </div>`);
             el.querySelector('button').onclick = () => copyToClipboard(el.querySelector('button'), colorStr);
         }
@@ -695,6 +705,4 @@ document.addEventListener('DOMContentLoaded', () => {
     triggerCheck(true); 
 });
 </script>
-
-</body>
-</html>
+</body></html>

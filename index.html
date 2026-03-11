@@ -85,6 +85,19 @@ legend {
     margin-left: 8px;
 }
 
+/* Screen reader only utility */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
 /* Suggestion Header with Unit Toggle */
 .suggestions-header {
     display: flex;
@@ -229,7 +242,7 @@ input[type="color"]::-webkit-color-swatch { border: none; }
 .col-status { flex: 1; display: flex; justify-content: flex-start; }
 .col-data { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; }
 
-/* H2 Labels in Results - Reset to look like original spans */
+/* H2 Labels in Results */
 .result-label { 
     color: var(--text-secondary); 
     font-size: 12px; 
@@ -295,7 +308,7 @@ footer a:hover { opacity: 0.8; }
                     <div class="color-preview-wrapper">
                         <input type="color" id="bg-picker" value="#FFFFFF">
                     </div>
-                    <div style="width: 58px;"></div> <!-- Spacer -->
+                    <div style="width: 58px;"></div>
                     <button id="bg-copy-btn" class="copy-main-btn"><i class="fa-solid fa-copy"></i></button>
                 </div>
             </div>
@@ -343,7 +356,10 @@ footer a:hover { opacity: 0.8; }
         <legend>WCAG AA <span id="aa-text-type"></span></legend>
         <div class="results-3-col">
             <div class="col-status">
-                <span class="status" id="aa-overall-status"></span>
+                <!-- Visual Status - Hidden from Screen Readers -->
+                <span class="status" id="aa-overall-status" aria-hidden="true"></span>
+                <!-- Dedicated Accessibility Announcer for Status Updates -->
+                <span id="status-announcer" class="sr-only" role="status" aria-atomic="true"></span>
             </div>
             <div class="col-data">
                 <h2 class="result-label">Needed ratio</h2>
@@ -378,6 +394,8 @@ document.addEventListener('DOMContentLoaded', () => {
     /* --- STATE --- */
     const units = ['hex', 'rgb', 'hsl'];
     let currentUnitIndex = 0; // HEX as default
+    let lastPassStatus = null; 
+    let firstUserInteractionOccurred = false;
 
     /* --- DOM ELEMENTS --- */
     const fgPicker = document.getElementById('fg-picker');
@@ -390,6 +408,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const neededRatioSpan = document.getElementById('needed-ratio');
     const aaOverallStatusSpan = document.getElementById('aa-overall-status');
     const aaTextTypeSpan = document.getElementById('aa-text-type');
+    const statusAnnouncer = document.getElementById('status-announcer');
     const resultsContainer = document.getElementById('results-container');
     const successMessage = document.getElementById('success-message');
     const suggestionsContainer = document.querySelector('.suggestions-container');
@@ -398,6 +417,37 @@ document.addEventListener('DOMContentLoaded', () => {
     const fontUnitContainer = document.getElementById('font-unit-container');
     const fgCopyBtn = document.getElementById('fg-copy-btn');
     const bgCopyBtn = document.getElementById('bg-copy-btn');
+
+    /* --- AUDIO FEEDBACK LOGIC --- */
+    let audioCtx = null;
+
+    const initAudio = () => {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    };
+
+    const playTone = (freq, type = 'sine', duration = 0.1, volume = 0.05) => {
+        initAudio();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        oscillator.type = type;
+        oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gainNode.gain.setValueAtTime(volume, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + duration);
+    };
+
+    const playPassSound = () => {
+        playTone(660, 'sine', 0.15);
+        setTimeout(() => playTone(880, 'sine', 0.15), 100);
+    };
+
+    const playFailSound = () => {
+        playTone(330, 'square', 0.2, 0.03);
+    };
 
     /* --- HELPERS --- */
     const hexToRgb = (hex) => {
@@ -408,9 +458,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const rgbToHex = (rgb) => {
         const toH = (v) => Math.round(v).toString(16).padStart(2, '0');
         const hex = "#" + toH(rgb.r) + toH(rgb.g) + toH(rgb.b);
-        if (rgb.a !== undefined && rgb.a < 1) {
-            return hex + toH(Math.round(rgb.a * 255));
-        }
+        if (rgb.a !== undefined && rgb.a < 1) return hex + toH(Math.round(rgb.a * 255));
         return hex;
     };
 
@@ -424,9 +472,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const getBgRgb = () => hexToRgb(bgPicker.value);
 
-    const triggerCheck = () => checkContrast();
+    const triggerCheck = (isInitial = false) => {
+        if (!isInitial) initAudio();
+        checkContrast(isInitial);
+    };
 
-    /* --- UI UPDATES --- */
     const updateUnitToggleButton = () => {
         const current = units[currentUnitIndex].toUpperCase();
         const next = units[(currentUnitIndex + 1) % units.length].toUpperCase();
@@ -436,19 +486,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /* --- LISTENERS --- */
     [fgPicker, fgAlpha, bgPicker, fontSizeSelect, fontWeightSelect, noTextCheckbox].forEach(el => {
-        el.addEventListener('input', triggerCheck);
+        el.addEventListener('input', () => triggerCheck(false));
     });
 
     unitToggleBtn.addEventListener('click', () => {
         currentUnitIndex = (currentUnitIndex + 1) % units.length;
         updateUnitToggleButton();
-        triggerCheck(); 
+        triggerCheck(false); 
     });
 
     document.querySelectorAll('input[name="font-size-unit"]').forEach(radio => {
         radio.addEventListener('change', () => {
             updateFontSizeOptions();
-            triggerCheck();
+            triggerCheck(false);
         });
     });
 
@@ -460,7 +510,7 @@ document.addEventListener('DOMContentLoaded', () => {
         radios.forEach(r => r.disabled = isNoText);
         if (isNoText) fontUnitContainer.classList.add('disabled');
         else fontUnitContainer.classList.remove('disabled');
-        triggerCheck();
+        triggerCheck(false);
     });
 
     /* Copy Logic */
@@ -497,7 +547,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let options = unit === 'pt' ? 
             [{ value: 12, text: 'Less than 14' }, { value: 14, text: '14 to 17.99' }, { value: 18, text: '18 or more' }] :
             [{ value: 16, text: 'Less than 18.66' }, { value: 18.66, text: '18.66 to 23.99' }, { value: 24, text: '24 or more' }];
-
         options.forEach(opt => {
             const o = document.createElement('option');
             o.value = opt.value; o.textContent = opt.text;
@@ -506,15 +555,13 @@ document.addEventListener('DOMContentLoaded', () => {
         fontSizeSelect.value = options.find(o => o.value == currentVal) ? currentVal : options[0].value;
     }
 
-    function checkContrast() {
+    function checkContrast(isInitial = false) {
         const isNonText = noTextCheckbox.checked;
         const fgRaw = getFullFgRgb(); 
         const bgRgb = getBgRgb();
         const activeUnit = units[currentUnitIndex];
 
         fgPicker.style.opacity = fgRaw.a;
-
-        // Sync main copy button tooltips
         fgCopyBtn.title = formatColor(fgRaw, activeUnit);
         bgCopyBtn.title = formatColor(bgRgb, activeUnit);
 
@@ -541,6 +588,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const passes = ratio >= needed;
+
+        // Audio and Screen Reader Management
+        if (!isInitial) {
+            // First user edit: play sound and update announcer
+            if (!firstUserInteractionOccurred) {
+                if (passes) playPassSound(); else playFailSound();
+                statusAnnouncer.textContent = passes ? 'Pass' : 'Fail';
+                firstUserInteractionOccurred = true;
+            } 
+            // Subsequent flips: play sound and update announcer
+            else if (lastPassStatus !== null && lastPassStatus !== passes) {
+                if (passes) playPassSound(); else playFailSound();
+                statusAnnouncer.textContent = passes ? 'Pass' : 'Fail';
+            }
+        }
+        lastPassStatus = passes;
+
         const resColor = passes ? 'var(--pass-color)' : 'var(--fail-color)';
         contrastRatioSpan.style.color = resColor;
         resultsContainer.style.borderColor = resColor;
@@ -657,18 +721,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function findPassingFgColor(fgSolid, bg, alpha, neededRatio) {
-        const hsl = rgbToHsl(fgSolid);
-        const lBg = getLuminance(bg);
-        const direction = lBg > 0.5 ? -1 : 1;
-        
+        const hsl = rgbToHsl(fgSolid), lBg = getLuminance(bg), direction = lBg > 0.5 ? -1 : 1;
         for (let step = 0; step <= 100; step++) {
             const newL = Math.max(0, Math.min(1, hsl.l + (step * 0.01 * direction)));
             const candSolid = hslToRgb({ ...hsl, l: newL });
-            const blended = {
-                r: Math.round(alpha * candSolid.r + (1 - alpha) * bg.r),
-                g: Math.round(alpha * candSolid.g + (1 - alpha) * bg.g),
-                b: Math.round(alpha * candSolid.b + (1 - alpha) * bg.b)
-            };
+            const blended = { r: Math.round(alpha * candSolid.r + (1 - alpha) * bg.r), g: Math.round(alpha * candSolid.g + (1 - alpha) * bg.g), b: Math.round(alpha * candSolid.b + (1 - alpha) * bg.b) };
             const ratio = getContrastRatio(blended, bg);
             if (ratio >= neededRatio) return { rgb: candSolid, ratio: ratio };
         }
@@ -676,22 +733,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function findPassingBgColor(fgSolid, bgSolid, alpha, neededRatio) {
-        const hsl = rgbToHsl(bgSolid);
-        const lFgBlended = getLuminance({
-            r: Math.round(alpha * fgSolid.r + (1 - alpha) * bgSolid.r),
-            g: Math.round(alpha * fgSolid.g + (1 - alpha) * bgSolid.g),
-            b: Math.round(alpha * fgSolid.b + (1 - alpha) * bgSolid.b)
-        });
-        const direction = lFgBlended > 0.5 ? -1 : 1;
-
+        const hsl = rgbToHsl(bgSolid), direction = getLuminance(fgSolid) > 0.5 ? -1 : 1;
         for (let step = 0; step <= 100; step++) {
             const newL = Math.max(0, Math.min(1, hsl.l + (step * 0.01 * direction)));
             const candBg = hslToRgb({ ...hsl, l: newL });
-            const blended = {
-                r: Math.round(alpha * fgSolid.r + (1 - alpha) * candBg.r),
-                g: Math.round(alpha * fgSolid.g + (1 - alpha) * candBg.g),
-                b: Math.round(alpha * fgSolid.b + (1 - alpha) * candBg.b)
-            };
+            const blended = { r: Math.round(alpha * fgSolid.r + (1 - alpha) * candBg.r), g: Math.round(alpha * fgSolid.g + (1 - alpha) * candBg.g), b: Math.round(alpha * fgSolid.b + (1 - alpha) * candBg.b) };
             const ratio = getContrastRatio(blended, candBg);
             if (ratio >= neededRatio) return { rgb: candBg, ratio: ratio };
         }
@@ -700,11 +746,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function findPassingAlpha(fg, bg, needed) {
         for (let a = 0.01; a <= 1.0; a += 0.01) { 
-            const blended = {
-                r: Math.round(a * fg.r + (1 - a) * bg.r),
-                g: Math.round(a * fg.g + (1 - a) * bg.g),
-                b: Math.round(a * fg.b + (1 - a) * bg.b)
-            };
+            const blended = { r: Math.round(a * fg.r + (1 - a) * bg.r), g: Math.round(a * fg.g + (1 - a) * bg.g), b: Math.round(a * fg.b + (1 - a) * bg.b) };
             if (getContrastRatio(blended, bg) >= needed) return parseFloat(a.toFixed(2)); 
         }
         return null;
@@ -712,9 +754,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function formatColor(rgbObj, format) {
         const a = rgbObj.a !== undefined ? rgbObj.a : 1.0;
-        if (format === 'rgb') {
-            return a < 1 ? `rgba(${rgbObj.r}, ${rgbObj.g}, ${rgbObj.b}, ${a.toFixed(2)})` : `rgb(${rgbObj.r}, ${rgbObj.g}, ${rgbObj.b})`;
-        }
+        if (format === 'rgb') return a < 1 ? `rgba(${rgbObj.r}, ${rgbObj.g}, ${rgbObj.b}, ${a.toFixed(2)})` : `rgb(${rgbObj.r}, ${rgbObj.g}, ${rgbObj.b})`;
         if (format === 'hsl') {
             const { h, s, l } = rgbToHsl(rgbObj);
             const hh = Math.round(h * 360), ss = Math.round(s * 100), ll = Math.round(l * 100);
@@ -728,8 +768,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function rgbToHsl(rgb) {
         let r = rgb.r / 255, g = rgb.g / 255, b = rgb.b / 255, max = Math.max(r, g, b), min = Math.min(r, g, b), h, s, l = (max + min) / 2;
-        if (max === min) h = s = 0;
-        else {
+        if (max === min) h = s = 0; else {
             const d = max - min; s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
             if (max === r) h = (g - b) / d + (g < b ? 6 : 0); else if (max === g) h = (b - r) / d + 2; else h = (r - g) / d + 4;
             h /= 6;
@@ -739,8 +778,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function hslToRgb(hsl) {
         let h = hsl.h, s = hsl.s, l = hsl.l, r, g, b;
-        if (s === 0) r = g = b = l;
-        else {
+        if (s === 0) r = g = b = l; else {
             const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
             const h2r = (p, q, t) => { if (t < 0) t += 1; if (t > 1) t -= 1; if (t < 1/6) return p + (q - p) * 6 * t; if (t < 1/2) return q; if (t < 2/3) return p + (q - p) * (2/3 - t) * 6; return p; };
             r = h2r(p, q, h + 1/3); g = h2r(p, q, h); b = h2r(p, q, h - 1/3);
@@ -750,7 +788,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updateFontSizeOptions();
     updateUnitToggleButton();
-    triggerCheck();
+    triggerCheck(true); 
 });
 </script>
 

@@ -602,11 +602,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Audio and Screen Reader Management
         if (!isInitial) {
+            // First user edit: play sound and update announcer
             if (!firstUserInteractionOccurred) {
                 if (passes) playPassSound(); else playFailSound();
                 statusAnnouncer.textContent = passes ? 'Passes' : 'Fails';
                 firstUserInteractionOccurred = true;
             } 
+            // Subsequent flips: play sound and update announcer
             else if (lastPassStatus !== null && lastPassStatus !== passes) {
                 if (passes) playPassSound(); else playFailSound();
                 statusAnnouncer.textContent = passes ? 'Passes' : 'Fails';
@@ -687,7 +689,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // 3. Replace Front
         const sFg = findPassingFgColor(fgRaw, bgRgb, fgRaw.a, needed);
         if (sFg) {
-            const colorStr = formatColor(sFg.rgb, activeUnit);
+            // MERGE CURRENT ALPHA into the suggested Hue for Front replacements
+            const colorWithCurrentAlpha = { ...sFg.rgb, a: fgRaw.a };
+            const colorStr = formatColor(colorWithCurrentAlpha, activeUnit);
             const el = addSugg(`
                 <div class="status" style="color: ${rgbToHex(sFg.rgb)}; opacity: ${fgRaw.a}; background-color: ${bgPicker.value};">PASS</div>
                 <div style="flex-grow:1; display:flex; flex-direction:column;">

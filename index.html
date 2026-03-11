@@ -553,17 +553,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateFontSizeOptions() {
         const unit = document.querySelector('input[name="font-size-unit"]:checked').value;
-        const currentVal = fontSizeSelect.value;
+        const previousIndex = fontSizeSelect.selectedIndex >= 0 ? fontSizeSelect.selectedIndex : 0;
+        
         fontSizeSelect.innerHTML = '';
         let options = unit === 'pt' ? 
             [{ value: 12, text: 'Less than 14' }, { value: 14, text: '14 to 17.99' }, { value: 18, text: '18 or more' }] :
             [{ value: 16, text: 'Less than 18.66' }, { value: 18.66, text: '18.66 to 23.99' }, { value: 24, text: '24 or more' }];
+        
         options.forEach(opt => {
             const o = document.createElement('option');
             o.value = opt.value; o.textContent = opt.text;
             fontSizeSelect.appendChild(o);
         });
-        fontSizeSelect.value = options.find(o => o.value == currentVal) ? currentVal : options[0].value;
+        
+        // Restore index to keep px/pt coherent by range entry
+        fontSizeSelect.selectedIndex = previousIndex;
     }
 
     function checkContrast(isInitial = false) {

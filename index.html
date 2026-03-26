@@ -290,8 +290,7 @@
             display: flex; align-items: center; justify-content: center; font-size: 12px;
             box-shadow: var(--shadow); transition: all 0.1s;
         }
-        .fav-btn:hover { color: #f59e0b; border-color: #f59e0b; }
-        .copy-small-btn:hover { color: var(--accent-color); border-color: var(--accent-color); }
+        .fav-btn:hover, .copy-small-btn:hover { color: var(--accent-color); border-color: var(--accent-color); }
 
         .results-container {
             padding: 12px 16px; box-shadow: var(--shadow); margin-top: 16px;
@@ -328,6 +327,16 @@
         .success-container {
             margin-top: 12px; padding: 10px 16px; border-radius: 8px; background-color: #A9D3CF; 
             color: #193426; border: 1px solid #92b9b5; font-weight: 600; font-size: 13px; text-align: center;
+            position: relative;
+        }
+
+        .success-btn-group {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            gap: 4px;
         }
 
         .suggestions-container { margin-top: 16px; display: none; flex-direction: column; gap: 8px; }
@@ -356,8 +365,12 @@
         }
         .history-swatch:hover, .history-swatch:focus-visible { transform: scale(1.1); }
 
-        /* Custom Tooltip Logic - ensure visibility on hover and focus */
-        .history-swatch::after {
+        /* --- UNIVERSAL TOOLTIP LOGIC --- */
+        .history-swatch, .copy-small-btn, .fav-btn, .copy-main-btn {
+            position: relative;
+        }
+
+        .history-swatch::after, .copy-small-btn::after, .fav-btn::after, .copy-main-btn::after {
             content: attr(data-tooltip);
             position: absolute;
             bottom: 135%;
@@ -378,7 +391,20 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.25);
             text-transform: none;
         }
-        .history-swatch:hover::after, .history-swatch:focus-visible::after {
+
+        /* Tooltip hidden class */
+        .tooltips-suppressed .history-swatch::after,
+        .tooltips-suppressed .copy-small-btn::after,
+        .tooltips-suppressed .fav-btn::after,
+        .tooltips-suppressed .copy-main-btn::after {
+            display: none !important;
+            opacity: 0 !important;
+        }
+
+        .history-swatch:hover::after, .history-swatch:focus-visible::after,
+        .copy-small-btn:hover::after, .copy-small-btn:focus-visible::after,
+        .fav-btn:hover::after, .fav-btn:focus-visible::after,
+        .copy-main-btn:hover::after, .copy-main-btn:focus-visible::after {
             opacity: 1;
             visibility: visible;
             transform: translateX(-50%) translateY(-2px);
@@ -423,7 +449,7 @@
                         <input type="color" id="fg-picker" value="#000000">
                     </div>
                     <input type="number" id="fg-alpha" class="opacity-input" value="100" min="0" max="100" step="1">
-                    <button id="fg-copy-btn" class="copy-main-btn" title="Copy color"><i class="fa-solid fa-copy"></i></button>
+                    <button id="fg-copy-btn" class="copy-main-btn" data-tooltip="Copy color"><i class="fa-solid fa-copy"></i></button>
                 </div>
             </div>
             <div class="input-group">
@@ -433,7 +459,7 @@
                         <input type="color" id="bg-picker" value="#FFFFFF">
                     </div>
                     <div style="width: 58px;"></div>
-                    <button id="bg-copy-btn" class="copy-main-btn" title="Copy color"><i class="fa-solid fa-copy"></i></button>
+                    <button id="bg-copy-btn" class="copy-main-btn" data-tooltip="Copy color"><i class="fa-solid fa-copy"></i></button>
                 </div>
             </div>
         </fieldset>
@@ -571,6 +597,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const playPassSound = () => { playTone(660, 'sine', 0.15); setTimeout(() => playTone(880, 'sine', 0.15), 100); };
     const playFailSound = () => { playTone(330, 'square', 0.2, 0.03); };
 
+    /* --- TOOLTIP ESC LOGIC --- */
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            document.body.classList.add('tooltips-suppressed');
+        }
+    });
+
+    ['mousemove', 'mousedown', 'scroll', 'touchstart'].forEach(evt => {
+        document.addEventListener(evt, () => {
+            document.body.classList.remove('tooltips-suppressed');
+        }, { passive: true });
+    });
+
     /* --- HELPERS --- */
     const hexToRgb = (hex) => {
         const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -609,13 +648,27 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     /* --- HISTORY LOGIC --- */
+    function isCombinationStored(fg, bg, isNonText) {
+        const key = `${rgbToHex(fg)}_${rgbToHex(bg)}_${isNonText}`;
+        return passingHistory.some(h => `${rgbToHex(h.fg)}_${rgbToHex(h.bg)}_${h.isNonText}` === key);
+    }
+
     function addCombination(fg, bg, isNonText) {
         const key = `${rgbToHex(fg)}_${rgbToHex(bg)}_${isNonText}`;
-        if (passingHistory.some(h => `${rgbToHex(h.fg)}_${rgbToHex(h.bg)}_${h.isNonText}` === key)) return;
+        const index = passingHistory.findIndex(h => `${rgbToHex(h.fg)}_${rgbToHex(h.bg)}_${h.isNonText}` === key);
         
-        passingHistory.unshift({ fg, bg, isNonText });
-        if (passingHistory.length > 30) passingHistory.pop(); 
+        if (index > -1) {
+            // Remove if already present (Toggle off)
+            passingHistory.splice(index, 1);
+        } else {
+            // Add if not present (Toggle on)
+            passingHistory.unshift({ fg, bg, isNonText });
+            if (passingHistory.length > 30) passingHistory.pop(); 
+        }
+        
         renderHistory();
+        // Refresh UI to update star icons
+        checkContrast(false);
     }
 
     function renderHistory() {
@@ -655,7 +708,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const fgStr = formatColor(item.fg, activeUnit);
             const bgStr = formatColor(item.bg, activeUnit);
-            const tooltipText = `copy ${fgStr} on ${bgStr}`;
+            const tooltipText = `Copy ${fgStr} on ${bgStr}`; // Capitalized "Copy"
             swatch.setAttribute('data-tooltip', tooltipText);
             swatch.ariaLabel = tooltipText;
 
@@ -701,6 +754,7 @@ document.addEventListener('DOMContentLoaded', () => {
     clearHistoryBtn.addEventListener('click', () => {
         passingHistory = [];
         renderHistory();
+        checkContrast(false);
     });
 
     document.querySelectorAll('input[name="font-size-unit"]').forEach(radio => {
@@ -766,8 +820,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const activeUnit = units[currentUnitIndex];
 
         fgPicker.style.opacity = fgRaw.a;
-        fgCopyBtn.title = "Copy " + formatColor(fgRaw, activeUnit);
-        bgCopyBtn.title = "Copy " + formatColor(bgRgb, activeUnit);
+        fgCopyBtn.setAttribute('data-tooltip', "Copy " + formatColor(fgRaw, activeUnit));
+        bgCopyBtn.setAttribute('data-tooltip', "Copy " + formatColor(bgRgb, activeUnit));
 
         const fgFlat = {
             r: Math.round(fgRaw.a * fgRaw.r + (1 - fgRaw.a) * bgRgb.r),
@@ -832,10 +886,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? "https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast" 
                 : "https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html";
             
+            const isFav = isCombinationStored(fgRaw, bgRgb, isNonText);
+            const favClass = isFav ? 'fa-solid' : 'fa-regular';
+
+            const fgStr = formatColor(fgRaw, activeUnit);
+            const bgStr = formatColor(bgRgb, activeUnit);
+            const comboStr = `${fgStr} on ${bgStr}`;
+
             successMessage.innerHTML = `
                 <div style="font-size: 15px; margin-bottom: 2px;">Well done!</div>
-                <div>Your contrast meets the <a href="${scUrl}" target="_blank" style="color: inherit; text-decoration: underline;">WCAG SC${scNumber} requirements</a>!</div>
+                <div style="padding-right: 64px;">Your contrast meets <a href="${scUrl}" target="_blank" style="color: inherit; text-decoration: underline;">WCAG SC${scNumber}</a>!</div>
+                <div class="success-btn-group">
+                    <button id="success-fav-btn" class="fav-btn" type="button" data-tooltip="Store as favourite" aria-label="Add to stored combinations">
+                        <i class="${favClass} fa-star"></i>
+                    </button>
+                    <button id="success-copy-btn" class="copy-small-btn" type="button" data-tooltip="Copy ${comboStr}" aria-label="Copy ${comboStr}">
+                        <i class="fa-solid fa-copy"></i>
+                    </button>
+                </div>
             `;
+            document.getElementById('success-fav-btn').onclick = () => addCombination(fgRaw, bgRgb, isNonText);
+            document.getElementById('success-copy-btn').onclick = () => copyToClipboard(document.getElementById('success-copy-btn'), comboStr);
         } else {
             suggestionsContainer.style.display = 'flex';
             successMessage.style.display = 'none';
@@ -871,47 +942,60 @@ document.addEventListener('DOMContentLoaded', () => {
                   <div style="font-size:12px; color:var(--text-secondary);">Ratio: ${currentRatio.toFixed(2)} with Background ${currentBgActive}</div></div>`);
         }
 
+        // Helper to bind events and tooltips to suggestion buttons
+        const setupSuggestionButtons = (el, fg, bg, isNonText, colorStr) => {
+            const copyBtn = el.querySelector('.copy-small-btn');
+            const favBtn = el.querySelector('.fav-btn');
+            const favIcon = favBtn.querySelector('i');
+
+            const isFav = isCombinationStored(fg, bg, isNonText);
+            favIcon.className = isFav ? 'fa-solid fa-star' : 'fa-regular fa-star';
+
+            copyBtn.onclick = () => copyToClipboard(copyBtn, colorStr);
+            favBtn.onclick = () => addCombination(fg, bg, isNonText);
+        };
+
         const solidFg = { ...fgRaw, a: 1.0 };
         if (getContrastRatio(solidFg, bgRgb) >= needed && fgRaw.a < 1.0) {
             const pA = findPassingAlpha(fgRaw, bgRgb, needed);
             if (pA) {
-                const colorStr = formatColor({ ...fgRaw, a: pA }, activeUnit);
-                const badgeColor = rgbToHex({ ...fgRaw, a: pA });
+                const colorObj = { ...fgRaw, a: pA };
+                const colorStr = formatColor(colorObj, activeUnit);
+                const badgeColor = rgbToHex(colorObj);
                 
                 const el = addS(`<div class="status" style="color:${badgeColor}; background-color:${currentBgHex};">${getBadgeHTML(true)}</div>
                     <div style="flex-grow:1; display:flex; flex-direction:column;">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <span style="color:var(--text-secondary);">Set <b>Front opacity</b> to <b style="font-family:monospace;">${Math.round(pA * 100)}%</b></span>
                             <div class="suggestion-btn-group">
-                                <button class="fav-btn" type="button" aria-label="Add to stored combinations"><i class="fa-solid fa-star"></i></button>
-                                <button class="copy-small-btn" type="button" aria-label="Copy ${colorStr}"><i class="fa-solid fa-copy"></i></button>
+                                <button class="fav-btn" type="button" data-tooltip="Store as favourite" aria-label="Add to stored combinations"><i class="fa-regular fa-star"></i></button>
+                                <button class="copy-small-btn" type="button" data-tooltip="Copy ${colorStr}" aria-label="Copy ${colorStr}"><i class="fa-solid fa-copy"></i></button>
                             </div>
                         </div>
                         <span style="font-size:12px; color:var(--text-secondary);">Ratio: ${needed.toFixed(2)} with Background ${currentBgActive}</span>
                     </div>`);
-                el.querySelector('.copy-small-btn').onclick = () => copyToClipboard(el.querySelector('.copy-small-btn'), colorStr);
-                el.querySelector('.fav-btn').onclick = () => addCombination({ ...fgRaw, a: pA }, bgRgb, isNonText);
+                setupSuggestionButtons(el, colorObj, bgRgb, isNonText, colorStr);
             }
         }
 
         const sFg = findPassingFgColor(fgRaw, bgRgb, fgRaw.a, needed);
         if (sFg) {
-            const colorStr = formatColor({ ...sFg.rgb, a: fgRaw.a }, activeUnit);
-            const badgeColor = rgbToHex({ ...sFg.rgb, a: fgRaw.a });
+            const colorObj = { ...sFg.rgb, a: fgRaw.a };
+            const colorStr = formatColor(colorObj, activeUnit);
+            const badgeColor = rgbToHex(colorObj);
             
             const el = addS(`<div class="status" style="color:${badgeColor}; background-color:${currentBgHex};">${getBadgeHTML(true)}</div>
                 <div style="flex-grow:1; display:flex; flex-direction:column;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <span style="color:var(--text-secondary);">Replace <b>Front</b> with <b style="font-family:monospace;">${colorStr}</b></span>
                         <div class="suggestion-btn-group">
-                            <button class="fav-btn" type="button" aria-label="Add to stored combinations"><i class="fa-solid fa-star"></i></button>
-                            <button class="copy-small-btn" type="button" aria-label="Copy ${colorStr}"><i class="fa-solid fa-copy"></i></button>
+                            <button class="fav-btn" type="button" data-tooltip="Store as favourite" aria-label="Add to stored combinations"><i class="fa-regular fa-star"></i></button>
+                            <button class="copy-small-btn" type="button" data-tooltip="Copy ${colorStr}" aria-label="Copy ${colorStr}"><i class="fa-solid fa-copy"></i></button>
                         </div>
                     </div>
                     <span style="font-size:12px; color:var(--text-secondary);">Ratio: ${sFg.ratio.toFixed(2)} with Background ${currentBgActive}</span>
                 </div>`);
-            el.querySelector('.copy-small-btn').onclick = () => copyToClipboard(el.querySelector('.copy-small-btn'), colorStr);
-            el.querySelector('.fav-btn').onclick = () => addCombination({ ...sFg.rgb, a: fgRaw.a }, bgRgb, isNonText);
+            setupSuggestionButtons(el, colorObj, bgRgb, isNonText, colorStr);
         }
 
         const sBg = findPassingBgColor(fgRaw, bgRgb, fgRaw.a, needed);
@@ -924,14 +1008,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <span style="color:var(--text-secondary);">Replace <b>Background</b> with <b style="font-family:monospace;">${colorStr}</b></span>
                         <div class="suggestion-btn-group">
-                            <button class="fav-btn" type="button" aria-label="Add to stored combinations"><i class="fa-solid fa-star"></i></button>
-                            <button class="copy-small-btn" type="button" aria-label="Copy ${colorStr}"><i class="fa-solid fa-copy"></i></button>
+                            <button class="fav-btn" type="button" data-tooltip="Store as favourite" aria-label="Add to stored combinations"><i class="fa-regular fa-star"></i></button>
+                            <button class="copy-small-btn" type="button" data-tooltip="Copy ${colorStr}" aria-label="Copy ${colorStr}"><i class="fa-solid fa-copy"></i></button>
                         </div>
                     </div>
                     <span style="font-size:12px; color:var(--text-secondary);">Ratio: ${sBg.ratio.toFixed(2)} with Front ${currentFrontActive}</span>
                 </div>`);
-            el.querySelector('.copy-small-btn').onclick = () => copyToClipboard(el.querySelector('.copy-small-btn'), colorStr);
-            el.querySelector('.fav-btn').onclick = () => addCombination(fgRaw, sBg.rgb, isNonText);
+            setupSuggestionButtons(el, fgRaw, sBg.rgb, isNonText, colorStr);
         }
 
         if (count === 0) {

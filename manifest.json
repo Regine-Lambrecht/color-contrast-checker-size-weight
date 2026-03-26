@@ -8,7 +8,7 @@
     "default_title": "WCAG Colour Contrast Checker by Eleven Ways"
   },
   "side_panel": {
-    "default_path": "index.html"
+    "default_path": "popup.html"
   },
   "background": {
     "service_worker": "background.js"

@@ -19,7 +19,7 @@
             --accent-color: #0062cc;
             --pass-color: #00784d; 
             --fail-color: #cd1a00;
-            --warning-color: #985c00; /* Updated to meet 4.5:1 against #e6ebe9 */
+            --warning-color: #985c00; 
             --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
         }
 
@@ -195,13 +195,17 @@
         input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
         input[type="color"]::-webkit-color-swatch { border: none; }
 
+        /* Unified visible focus for all interactive elements */
         input[type="color"]:focus-visible,
         input[type="checkbox"]:focus-visible,
+        input[type="number"]:focus-visible,
         .opacity-input:focus-visible,
         select:focus-visible,
-        button:focus-visible {
-            outline: 2px solid var(--accent-color);
-            outline-offset: 3px;
+        button:focus-visible,
+        .unit-toggle-btn:focus-visible,
+        .history-swatch:focus-visible {
+            outline: 2px solid var(--accent-color) !important;
+            outline-offset: 3px !important;
         }
 
         .color-preview-wrapper {
@@ -270,6 +274,19 @@
             box-shadow: var(--shadow);
         }
 
+        .suggestion-btn-group {
+            display: flex; gap: 4px; align-items: center;
+        }
+
+        .copy-small-btn, .fav-btn {
+            width: 28px; height: 28px; border: 1px solid var(--border-color); border-radius: 6px;
+            background: var(--surface-color); color: var(--text-secondary); cursor: pointer;
+            display: flex; align-items: center; justify-content: center; font-size: 12px;
+            box-shadow: var(--shadow); transition: all 0.1s;
+        }
+        .fav-btn:hover { color: #f59e0b; border-color: #f59e0b; }
+        .copy-small-btn:hover { color: var(--accent-color); border-color: var(--accent-color); }
+
         .results-container {
             padding: 12px 16px; box-shadow: var(--shadow); margin-top: 16px;
             transition: border-color 0.2s ease; display: block !important;
@@ -316,6 +333,60 @@
             background: #e9eceb; padding: 12px; border-radius: 6px; border: 1px dashed var(--border-color);
             color: var(--text-secondary); font-size: 13px; line-height: 1.4;
         }
+
+        /* --- HISTORY STYLING --- */
+        .history-container { margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+        .history-header { display: flex; justify-content: space-between; align-items: center; }
+        .history-container h2 { font-size: 14px; color: var(--text-secondary); margin: 0; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .history-list { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 8px; }
+        
+        .history-swatch {
+            width: 48px; height: 32px; border-radius: 4px; border: 1px solid var(--border-color);
+            cursor: pointer; position: relative; transition: transform 0.1s;
+            box-shadow: var(--shadow);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 10px; font-weight: bold; overflow: visible;
+            text-transform: uppercase;
+        }
+        .history-swatch:hover, .history-swatch:focus-visible { transform: scale(1.1); }
+
+        /* Custom Tooltip Logic - ensure visibility on hover and focus */
+        .history-swatch::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 135%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1a202c;
+            color: #ffffff;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 0.15s, transform 0.15s;
+            z-index: 100;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.25);
+            text-transform: none;
+        }
+        .history-swatch:hover::after, .history-swatch:focus-visible::after {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(-2px);
+        }
+        
+        .empty-history-msg {
+            font-size: 13px; color: var(--text-secondary); font-style: italic; padding: 8px 0;
+        }
+
+        .clear-history-btn {
+            background: none; border: none; color: var(--fail-color); font-size: 12px;
+            font-weight: 600; cursor: pointer; padding: 4px; display: none;
+        }
+        .clear-history-btn:hover { text-decoration: underline; }
 
         footer { text-align: center; padding: 16px; border-top: 1px solid var(--border-color); font-size: 12px; color: var(--text-secondary); }
         footer a { color: var(--accent-color); text-decoration: underline; }
@@ -427,6 +498,14 @@
         </div>
         <div id="suggestions-list" style="display: contents;"></div>
     </div>
+
+    <div id="history-section" class="history-container">
+        <div class="history-header">
+            <h2><i class="fa-solid fa-star"></i> Stored passing combinations</h2>
+            <button type="button" id="clear-history-btn" class="clear-history-btn">Clear list</button>
+        </div>
+        <div id="history-list" class="history-list"></div>
+    </div>
 </main>
 
 <footer>
@@ -441,6 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastPassStatus = null; 
     let firstUserInteractionOccurred = false;
     let soundEnabled = false;
+    let passingHistory = []; // Stores objects: { fg: {r,g,b,a}, bg: {r,g,b}, isNonText: bool }
 
     /* --- DOM ELEMENTS --- */
     const fgPicker = document.getElementById('fg-picker');
@@ -459,6 +539,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const successMessage = document.getElementById('success-message');
     const suggestionsContainer = document.querySelector('.suggestions-container');
     const suggestionsList = document.getElementById('suggestions-list');
+    const historySection = document.getElementById('history-section');
+    const historyList = document.getElementById('history-list');
+    const clearHistoryBtn = document.getElementById('clear-history-btn');
     const unitToggleBtn = document.getElementById('unit-toggle-btn');
     const soundToggleBtn = document.getElementById('sound-toggle-btn');
     const fgCopyBtn = document.getElementById('fg-copy-btn');
@@ -516,7 +599,80 @@ document.addEventListener('DOMContentLoaded', () => {
         const nextIndex = (currentUnitIndex + 1) % units.length;
         const nextUnit = units[nextIndex].toUpperCase();
         unitToggleBtn.textContent = nextUnit;
+        renderHistory(); 
     };
+
+    /* --- HISTORY LOGIC --- */
+    function addCombination(fg, bg, isNonText) {
+        const key = `${rgbToHex(fg)}_${rgbToHex(bg)}_${isNonText}`;
+        if (passingHistory.some(h => `${rgbToHex(h.fg)}_${rgbToHex(h.bg)}_${h.isNonText}` === key)) return;
+        
+        passingHistory.unshift({ fg, bg, isNonText });
+        if (passingHistory.length > 30) passingHistory.pop(); 
+        renderHistory();
+    }
+
+    function renderHistory() {
+        historyList.innerHTML = '';
+        if (passingHistory.length === 0) {
+            const emptyMsg = document.createElement('div');
+            emptyMsg.className = 'empty-history-msg';
+            emptyMsg.textContent = "Save your favorite passing combinations here";
+            historyList.appendChild(emptyMsg);
+            clearHistoryBtn.style.display = 'none';
+            return;
+        }
+
+        clearHistoryBtn.style.display = 'block';
+        const activeUnit = units[currentUnitIndex];
+        
+        passingHistory.forEach(item => {
+            const swatch = document.createElement('div');
+            swatch.className = 'history-swatch';
+            swatch.tabIndex = 0;
+            swatch.role = "button";
+            
+            const fgFlat = {
+                r: Math.round(item.fg.a * item.fg.r + (1 - item.fg.a) * item.bg.r),
+                g: Math.round(item.fg.a * item.fg.g + (1 - item.fg.a) * item.bg.g),
+                b: Math.round(item.fg.a * item.fg.b + (1 - item.fg.a) * item.bg.b)
+            };
+
+            swatch.style.backgroundColor = rgbToHex(item.bg);
+            swatch.style.color = rgbToHex(fgFlat);
+            
+            if (item.isNonText) {
+                swatch.innerHTML = '<i class="fa-solid fa-check"></i>';
+            } else {
+                swatch.textContent = "PASS";
+            }
+            
+            const fgStr = formatColor(item.fg, activeUnit);
+            const bgStr = formatColor(item.bg, activeUnit);
+            const tooltipText = `copy ${fgStr} on ${bgStr}`;
+            swatch.setAttribute('data-tooltip', tooltipText);
+            swatch.ariaLabel = tooltipText;
+
+            swatch.onclick = () => {
+                const combined = `${fgStr} on ${bgStr}`;
+                const ta = document.createElement("textarea"); 
+                ta.value = combined; ta.style.position = "fixed"; ta.style.left = "-9999px";
+                document.body.appendChild(ta); ta.select(); 
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                
+                const originalContent = swatch.innerHTML;
+                swatch.innerHTML = '<i class="fa-solid fa-copy"></i>';
+                setTimeout(() => { swatch.innerHTML = originalContent; }, 1000);
+            };
+
+            swatch.onkeydown = (e) => {
+                if (e.key === 'Enter') swatch.click();
+            };
+
+            historyList.appendChild(swatch);
+        });
+    }
 
     /* --- LISTENERS --- */
     [fgPicker, fgAlpha, bgPicker, fontSizeSelect, fontWeightSelect, noTextCheckbox].forEach(el => {
@@ -534,6 +690,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const icon = soundToggleBtn.querySelector('i');
         icon.className = soundEnabled ? 'fa-solid fa-volume-high' : 'fa-solid fa-volume-xmark';
         soundToggleBtn.title = soundEnabled ? 'Mute sound feedback' : 'Enable sound feedback';
+    });
+
+    clearHistoryBtn.addEventListener('click', () => {
+        passingHistory = [];
+        renderHistory();
     });
 
     document.querySelectorAll('input[name="font-size-unit"]').forEach(radio => {
@@ -693,16 +854,14 @@ document.addEventListener('DOMContentLoaded', () => {
             return `<span style="font-size:${bS.size}; font-weight:${bS.weight}; line-height:1;">${isPass ? 'PASS' : 'FAIL'}</span>`;
         };
 
-        // UI/Graphics Suggestion
         if (!isNonText && currentRatio >= 3.0 && currentRatio < 4.5) {
             addS(`<div class="status" style="color:${currentFrontAlphaValidHex}; background-color:${currentBgHex}; padding: 0;"><i class="fa-solid fa-check" style="font-size:16px;"></i></div>
                   <div style="flex-grow:1;"><div style="color:var(--text-secondary); font-weight:500;">Use this colour combination only for <b>graphics and User Interface components</b>, not for text on background.</div></div>`);
         }
 
         if (!isNonText && !isLarge && currentRatio >= 3.0) {
-            const req = (document.querySelector('input[name="font-size-unit"]:checked').value === 'px') ? 'min 18.5px bold or 24px regular.' : 'min 14pt bold or 18pt regular.';
             addS(`<div class="status" style="color:${currentFrontAlphaValidHex}; background-color:${currentBgHex}; padding: 0;">${getBadgeHTML(true, currentFrontAlphaValidHex, currentBgHex, true)}</div>
-                  <div style="flex-grow:1;"><div style="color:var(--text-secondary); font-weight:500;">Enlarge text: ${req}</div>
+                  <div style="flex-grow:1;"><div style="color:var(--text-secondary); font-weight:500;">Enlarge text: min 18.5px bold or 24px regular.</div>
                   <div style="font-size:12px; color:var(--text-secondary);">Ratio: ${currentRatio.toFixed(2)} with Background ${currentBgActive}</div></div>`);
         }
 
@@ -712,15 +871,20 @@ document.addEventListener('DOMContentLoaded', () => {
             if (pA) {
                 const colorStr = formatColor({ ...fgRaw, a: pA }, activeUnit);
                 const badgeColor = rgbToHex({ ...fgRaw, a: pA });
+                
                 const el = addS(`<div class="status" style="color:${badgeColor}; background-color:${currentBgHex};">${getBadgeHTML(true)}</div>
                     <div style="flex-grow:1; display:flex; flex-direction:column;">
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <span style="color:var(--text-secondary);">Set <b>Front opacity</b> to <b style="font-family:monospace;">${Math.round(pA * 100)}%</b></span>
-                            <button class="copy-main-btn" type="button" title="Copy ${colorStr}"><i class="fa-solid fa-copy"></i></button>
+                            <div class="suggestion-btn-group">
+                                <button class="fav-btn" type="button" aria-label="Add to stored combinations"><i class="fa-solid fa-star"></i></button>
+                                <button class="copy-small-btn" type="button" aria-label="Copy ${colorStr}"><i class="fa-solid fa-copy"></i></button>
+                            </div>
                         </div>
                         <span style="font-size:12px; color:var(--text-secondary);">Ratio: ${needed.toFixed(2)} with Background ${currentBgActive}</span>
                     </div>`);
-                el.querySelector('button').onclick = () => copyToClipboard(el.querySelector('button'), colorStr);
+                el.querySelector('.copy-small-btn').onclick = () => copyToClipboard(el.querySelector('.copy-small-btn'), colorStr);
+                el.querySelector('.fav-btn').onclick = () => addCombination({ ...fgRaw, a: pA }, bgRgb, isNonText);
             }
         }
 
@@ -728,30 +892,40 @@ document.addEventListener('DOMContentLoaded', () => {
         if (sFg) {
             const colorStr = formatColor({ ...sFg.rgb, a: fgRaw.a }, activeUnit);
             const badgeColor = rgbToHex({ ...sFg.rgb, a: fgRaw.a });
+            
             const el = addS(`<div class="status" style="color:${badgeColor}; background-color:${currentBgHex};">${getBadgeHTML(true)}</div>
                 <div style="flex-grow:1; display:flex; flex-direction:column;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <span style="color:var(--text-secondary);">Replace <b>Front</b> with <b style="font-family:monospace;">${colorStr}</b></span>
-                        <button class="copy-main-btn" type="button" title="Copy ${colorStr}"><i class="fa-solid fa-copy"></i></button>
+                        <div class="suggestion-btn-group">
+                            <button class="fav-btn" type="button" aria-label="Add to stored combinations"><i class="fa-solid fa-star"></i></button>
+                            <button class="copy-small-btn" type="button" aria-label="Copy ${colorStr}"><i class="fa-solid fa-copy"></i></button>
+                        </div>
                     </div>
                     <span style="font-size:12px; color:var(--text-secondary);">Ratio: ${sFg.ratio.toFixed(2)} with Background ${currentBgActive}</span>
                 </div>`);
-            el.querySelector('button').onclick = () => copyToClipboard(el.querySelector('button'), colorStr);
+            el.querySelector('.copy-small-btn').onclick = () => copyToClipboard(el.querySelector('.copy-small-btn'), colorStr);
+            el.querySelector('.fav-btn').onclick = () => addCombination({ ...sFg.rgb, a: fgRaw.a }, bgRgb, isNonText);
         }
 
         const sBg = findPassingBgColor(fgRaw, bgRgb, fgRaw.a, needed);
         if (sBg) {
             const colorStr = formatColor(sBg.rgb, activeUnit);
             const badgeBgColor = rgbToHex(sBg.rgb);
+            
             const el = addS(`<div class="status" style="color:${currentFrontAlphaValidHex}; background-color:${badgeBgColor};">${getBadgeHTML(true)}</div>
                 <div style="flex-grow:1; display:flex; flex-direction:column;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <span style="color:var(--text-secondary);">Replace <b>Background</b> with <b style="font-family:monospace;">${colorStr}</b></span>
-                        <button class="copy-main-btn" type="button" title="Copy ${colorStr}"><i class="fa-solid fa-copy"></i></button>
+                        <div class="suggestion-btn-group">
+                            <button class="fav-btn" type="button" aria-label="Add to stored combinations"><i class="fa-solid fa-star"></i></button>
+                            <button class="copy-small-btn" type="button" aria-label="Copy ${colorStr}"><i class="fa-solid fa-copy"></i></button>
+                        </div>
                     </div>
                     <span style="font-size:12px; color:var(--text-secondary);">Ratio: ${sBg.ratio.toFixed(2)} with Front ${currentFrontActive}</span>
                 </div>`);
-            el.querySelector('button').onclick = () => copyToClipboard(el.querySelector('button'), colorStr);
+            el.querySelector('.copy-small-btn').onclick = () => copyToClipboard(el.querySelector('.copy-small-btn'), colorStr);
+            el.querySelector('.fav-btn').onclick = () => addCombination(fgRaw, sBg.rgb, isNonText);
         }
 
         if (count === 0) {
@@ -772,6 +946,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updateFontSizeOptions();
     updateUnitToggleButton();
+    renderHistory();
     triggerCheck(true); 
 });
 </script>

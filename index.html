@@ -392,13 +392,11 @@
             text-transform: none;
         }
 
-        /* Tooltip hidden class */
-        .tooltips-suppressed .history-swatch::after,
-        .tooltips-suppressed .copy-small-btn::after,
-        .tooltips-suppressed .fav-btn::after,
-        .tooltips-suppressed .copy-main-btn::after {
+        /* Tooltip hidden specific to the current element */
+        .tooltip-hidden::after {
             display: none !important;
             opacity: 0 !important;
+            visibility: hidden !important;
         }
 
         .history-swatch:hover::after, .history-swatch:focus-visible::after,
@@ -600,14 +598,22 @@ document.addEventListener('DOMContentLoaded', () => {
     /* --- TOOLTIP ESC LOGIC --- */
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
-            document.body.classList.add('tooltips-suppressed');
+            // Target the currently focused element
+            const activeEl = document.activeElement;
+            if (activeEl && activeEl.hasAttribute('data-tooltip')) {
+                activeEl.classList.add('tooltip-hidden');
+                // Remove the hidden state when the user moves focus away
+                activeEl.addEventListener('blur', () => activeEl.classList.remove('tooltip-hidden'), { once: true });
+            }
+            
+            // Target any currently hovered elements
+            const hoveredEls = document.querySelectorAll('[data-tooltip]:hover');
+            hoveredEls.forEach(el => {
+                el.classList.add('tooltip-hidden');
+                // Remove the hidden state when the mouse leaves the element
+                el.addEventListener('mouseleave', () => el.classList.remove('tooltip-hidden'), { once: true });
+            });
         }
-    });
-
-    ['mousemove', 'mousedown', 'scroll', 'touchstart'].forEach(evt => {
-        document.addEventListener(evt, () => {
-            document.body.classList.remove('tooltips-suppressed');
-        }, { passive: true });
     });
 
     /* --- HELPERS --- */

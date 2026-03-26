@@ -1,329 +1,481 @@
 document.addEventListener('DOMContentLoaded', () => {
-    /* --- INITIALIZATION --- */
-    Coloris({
-        el: '[data-coloris]',
-        themeMode: 'light',
-        alpha: true,
-        swatches: [],
-        format: 'auto',
-        formatToggle: true,
-        onChange: (color, input) => {
-            input.value = color;
-            handleInput(input.id.startsWith('fg') ? 'fg' : 'bg');
-        }
-    });
+    /* --- STATE --- */
+    const units = ['hex', 'rgb', 'hsl'];
+    let currentUnitIndex = 0; 
+    let lastPassStatus = null; 
+    let firstUserInteractionOccurred = false;
+    let soundEnabled = false;
+    let passingHistory = []; // Stores objects: { fg: {r,g,b,a}, bg: {r,g,b}, isNonText: bool }
 
+    /* --- DOM ELEMENTS --- */
+    const fgPicker = document.getElementById('fg-picker');
+    const fgAlpha = document.getElementById('fg-alpha');
+    const bgPicker = document.getElementById('bg-picker');
     const fontSizeSelect = document.getElementById('font-size');
     const fontWeightSelect = document.getElementById('font-weight');
-    const fgColorText = document.getElementById('fg-color-text');
-    const bgColorText = document.getElementById('bg-color-text');
     const noTextCheckbox = document.getElementById('no-text-legend-checkbox');
+    const unitGroup = document.getElementById('unit-group');
     const contrastRatioSpan = document.getElementById('contrast-ratio');
     const neededRatioSpan = document.getElementById('needed-ratio');
     const aaOverallStatusSpan = document.getElementById('aa-overall-status');
     const aaTextTypeSpan = document.getElementById('aa-text-type');
+    const statusAnnouncer = document.getElementById('status-announcer');
+    const resultsContainer = document.getElementById('results-container');
     const successMessage = document.getElementById('success-message');
     const suggestionsContainer = document.querySelector('.suggestions-container');
-
+    const suggestionsList = document.getElementById('suggestions-list');
+    const historySection = document.getElementById('history-section');
+    const historyList = document.getElementById('history-list');
+    const clearHistoryBtn = document.getElementById('clear-history-btn');
+    const unitToggleBtn = document.getElementById('unit-toggle-btn');
+    const soundToggleBtn = document.getElementById('sound-toggle-btn');
     const fgCopyBtn = document.getElementById('fg-copy-btn');
     const bgCopyBtn = document.getElementById('bg-copy-btn');
 
-    /* --- PERSISTENCE --- */
-    function loadSavedData() {
-        chrome.storage.local.get(['fg', 'bg', 'fontSize', 'fontWeight', 'isNonText', 'unit'], (data) => {
-            if (data.fg) fgColorText.value = data.fg;
-            if (data.bg) bgColorText.value = data.bg;
-            if (data.unit) {
-                document.getElementById(`unit-${data.unit}`).checked = true;
-                updateFontSizeOptions();
+    /* --- AUDIO FEEDBACK --- */
+    let audioCtx = null;
+    const initAudio = () => { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); };
+    const playTone = (freq, type = 'sine', duration = 0.1, volume = 0.05) => {
+        if (!soundEnabled) return;
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(); osc.stop(audioCtx.currentTime + duration);
+    };
+    const playPassSound = () => { playTone(660, 'sine', 0.15); setTimeout(() => playTone(880, 'sine', 0.15), 100); };
+    const playFailSound = () => { playTone(330, 'square', 0.2, 0.03); };
+
+    /* --- TOOLTIP ESC LOGIC --- */
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const activeEl = document.activeElement;
+            if (activeEl && activeEl.hasAttribute('data-tooltip')) {
+                activeEl.classList.add('tooltip-hidden');
+                activeEl.addEventListener('blur', () => activeEl.classList.remove('tooltip-hidden'), { once: true });
             }
-            if (data.fontSize) fontSizeSelect.value = data.fontSize;
-            if (data.fontWeight) fontWeightSelect.value = data.fontWeight;
-            if (data.isNonText !== undefined) noTextCheckbox.checked = data.isNonText;
+            const hoveredEls = document.querySelectorAll('[data-tooltip]:hover');
+            hoveredEls.forEach(el => {
+                el.classList.add('tooltip-hidden');
+                el.addEventListener('mouseleave', () => el.classList.remove('tooltip-hidden'), { once: true });
+            });
+        }
+    });
 
-            triggerCheck();
+    /* --- HELPERS --- */
+    const hexToRgb = (hex) => {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : null;
+    };
+    const rgbToHex = (rgb) => {
+        const toH = (v) => Math.round(v).toString(16).padStart(2, '0');
+        let hex = "#" + toH(rgb.r) + toH(rgb.g) + toH(rgb.b);
+        if (rgb.a !== undefined && rgb.a < 1) hex += toH(Math.round(rgb.a * 255));
+        return hex;
+    };
+    const getFullFgRgb = () => {
+        const rgb = hexToRgb(fgPicker.value);
+        let a = fgAlpha.value === "" ? 100 : parseInt(fgAlpha.value);
+        return { ...rgb, a: Math.max(0, Math.min(100, a)) / 100 };
+    };
+    const formatColor = (rgbObj, format) => {
+        const a = rgbObj.a !== undefined ? rgbObj.a : 1.0;
+        if (format === 'rgb') return a < 1 ? `rgba(${rgbObj.r}, ${rgbObj.g}, ${rgbObj.b}, ${a.toFixed(2)})` : `rgb(${rgbObj.r}, ${rgbObj.g}, ${rgbObj.b})`;
+        if (format === 'hsl') {
+            const { h, s, l } = rgbToHsl(rgbObj);
+            const hh = Math.round(h * 360), ss = Math.round(s * 100), ll = Math.round(l * 100);
+            return a < 1 ? `hsla(${hh}, ${ss}%, ${ll}%, ${a.toFixed(2)})` : `hsl(${hh}, ${ss}%, ${ll}%)`;
+        }
+        const toH = (v) => Math.round(v).toString(16).padStart(2, '0');
+        let hex = "#" + toH(rgbObj.r) + toH(rgbObj.g) + toH(rgbObj.b);
+        if (a < 1) return `${hex} ${Math.round(a * 100)}%`;
+        return hex;
+    };
+
+    const updateUnitToggleButton = () => {
+        const nextIndex = (currentUnitIndex + 1) % units.length;
+        const nextUnit = units[nextIndex].toUpperCase();
+        unitToggleBtn.textContent = nextUnit;
+        renderHistory(); 
+    };
+
+    /* --- HISTORY LOGIC --- */
+    function isCombinationStored(fg, bg, isNonText) {
+        const key = `${rgbToHex(fg)}_${rgbToHex(bg)}_${isNonText}`;
+        return passingHistory.some(h => `${rgbToHex(h.fg)}_${rgbToHex(h.bg)}_${h.isNonText}` === key);
+    }
+
+    function addCombination(fg, bg, isNonText) {
+        const key = `${rgbToHex(fg)}_${rgbToHex(bg)}_${isNonText}`;
+        const index = passingHistory.findIndex(h => `${rgbToHex(h.fg)}_${rgbToHex(h.bg)}_${h.isNonText}` === key);
+        
+        if (index > -1) {
+            passingHistory.splice(index, 1);
+        } else {
+            passingHistory.unshift({ fg, bg, isNonText });
+            if (passingHistory.length > 30) passingHistory.pop(); 
+        }
+        
+        renderHistory();
+        checkContrast(false);
+    }
+
+    function renderHistory() {
+        historyList.innerHTML = '';
+        if (passingHistory.length === 0) {
+            const emptyMsg = document.createElement('div');
+            emptyMsg.className = 'empty-history-msg';
+            emptyMsg.textContent = "Save your favourite passing combinations here";
+            historyList.appendChild(emptyMsg);
+            clearHistoryBtn.style.display = 'none';
+            return;
+        }
+
+        clearHistoryBtn.style.display = 'block';
+        const activeUnit = units[currentUnitIndex];
+        
+        passingHistory.forEach(item => {
+            const swatch = document.createElement('div');
+            swatch.className = 'history-swatch';
+            swatch.tabIndex = 0;
+            swatch.role = "button";
+            
+            const fgFlat = {
+                r: Math.round(item.fg.a * item.fg.r + (1 - item.fg.a) * item.bg.r),
+                g: Math.round(item.fg.a * item.fg.g + (1 - item.fg.a) * item.bg.g),
+                b: Math.round(item.fg.a * item.fg.b + (1 - item.fg.a) * item.bg.b)
+            };
+
+            swatch.style.backgroundColor = rgbToHex(item.bg);
+            swatch.style.color = rgbToHex(fgFlat);
+            
+            if (item.isNonText) {
+                swatch.innerHTML = '<i class="fa-solid fa-check"></i>';
+            } else {
+                swatch.textContent = "PASS";
+            }
+            
+            const fgStr = formatColor(item.fg, activeUnit);
+            const bgStr = formatColor(item.bg, activeUnit);
+            const tooltipText = `Copy ${fgStr} on ${bgStr}`;
+            swatch.setAttribute('data-tooltip', tooltipText);
+            swatch.ariaLabel = tooltipText;
+
+            swatch.onclick = () => {
+                const combined = `${fgStr} on ${bgStr}`;
+                const ta = document.createElement("textarea"); 
+                ta.value = combined; ta.style.position = "fixed"; ta.style.left = "-9999px";
+                document.body.appendChild(ta); ta.select(); 
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                
+                const originalContent = swatch.innerHTML;
+                swatch.innerHTML = '<i class="fa-solid fa-copy"></i>';
+                setTimeout(() => { swatch.innerHTML = originalContent; }, 1000);
+            };
+
+            swatch.onkeydown = (e) => { if (e.key === 'Enter') swatch.click(); };
+            historyList.appendChild(swatch);
         });
     }
 
-    function saveData() {
-        const unit = document.querySelector('input[name="font-size-unit"]:checked').value;
-        chrome.storage.local.set({
-            fg: fgColorText.value,
-            bg: bgColorText.value,
-            fontSize: fontSizeSelect.value,
-            fontWeight: fontWeightSelect.value,
-            isNonText: noTextCheckbox.checked,
-            unit: unit
-        });
-    }
+    /* --- LISTENERS --- */
+    [fgPicker, fgAlpha, bgPicker, fontSizeSelect, fontWeightSelect, noTextCheckbox].forEach(el => {
+        el.addEventListener('input', () => triggerCheck(false));
+    });
 
-    /* --- EVENT LISTENERS --- */
-    const triggerCheck = () => {
-        saveData();
-        checkContrast(fgColorText.value, bgColorText.value);
-    };
+    unitToggleBtn.addEventListener('click', () => {
+        currentUnitIndex = (currentUnitIndex + 1) % units.length;
+        updateUnitToggleButton();
+        triggerCheck(false); 
+    });
 
-    const handleInput = (prefix) => {
-        updateCopyTooltips();
-        triggerCheck();
-    };
+    soundToggleBtn.addEventListener('click', () => {
+        soundEnabled = !soundEnabled;
+        const icon = soundToggleBtn.querySelector('i');
+        icon.className = soundEnabled ? 'fa-solid fa-volume-high' : 'fa-solid fa-volume-xmark';
+        soundToggleBtn.setAttribute('data-tooltip', soundEnabled ? 'Mute sound feedback' : 'Enable sound feedback');
+    });
 
-    fgColorText.addEventListener('mousedown', () => document.body.classList.remove('bg-picker-active'));
-    bgColorText.addEventListener('mousedown', () => document.body.classList.add('bg-picker-active'));
-    fgColorText.addEventListener('input', () => handleInput('fg'));
-    bgColorText.addEventListener('input', () => handleInput('bg'));
-    fontSizeSelect.addEventListener('change', triggerCheck);
-    fontWeightSelect.addEventListener('change', triggerCheck);
-    
+    clearHistoryBtn.addEventListener('click', () => {
+        passingHistory = [];
+        renderHistory();
+        checkContrast(false);
+    });
+
     document.querySelectorAll('input[name="font-size-unit"]').forEach(radio => {
         radio.addEventListener('change', () => {
             updateFontSizeOptions();
-            triggerCheck();
+            triggerCheck(false);
         });
     });
 
     noTextCheckbox.addEventListener('change', (e) => {
         const isNoText = e.target.checked;
+        fontSizeSelect.disabled = fontWeightSelect.disabled = isNoText;
         document.querySelectorAll('input[name="font-size-unit"]').forEach(r => r.disabled = isNoText);
-        fontSizeSelect.disabled = isNoText;
-        fontWeightSelect.disabled = isNoText;
-        triggerCheck();
+        if (isNoText) unitGroup.classList.add('disabled');
+        else unitGroup.classList.remove('disabled');
+        triggerCheck(false);
     });
 
-    document.getElementById('fg-eyedropper-btn').addEventListener('click', () => pickColor(fgColorText));
-    document.getElementById('bg-eyedropper-btn').addEventListener('click', () => pickColor(bgColorText));
-
     const copyToClipboard = (btn, text) => {
-        navigator.clipboard.writeText(text).then(() => {
-            const icon = btn.querySelector('i');
-            const originalClass = icon.className;
-            icon.className = 'fa-solid fa-check';
-            btn.classList.add('success');
-            setTimeout(() => {
-                icon.className = originalClass;
-                btn.classList.remove('success');
-            }, 1500);
-        });
+        const ta = document.createElement("textarea"); 
+        ta.value = text; ta.style.position = "fixed"; ta.style.left = "-9999px";
+        document.body.appendChild(ta); ta.select(); 
+        document.execCommand('copy');
+        const icon = btn.querySelector('i');
+        if (icon) { icon.className = 'fa-solid fa-check'; setTimeout(() => { icon.className = 'fa-solid fa-copy'; }, 1500); }
+        document.body.removeChild(ta);
     };
 
-    fgCopyBtn.addEventListener('click', () => copyToClipboard(fgCopyBtn, fgColorText.value));
-    bgCopyBtn.addEventListener('click', () => copyToClipboard(bgCopyBtn, bgColorText.value));
-
-    /* --- LOGIC --- */
-    function updateCopyTooltips() {
-        fgCopyBtn.title = `Copy ${fgColorText.value}`;
-        bgCopyBtn.title = `Copy ${bgColorText.value}`;
-    }
+    fgCopyBtn.addEventListener('click', (e) => copyToClipboard(e.currentTarget, formatColor(getFullFgRgb(), units[currentUnitIndex])));
+    bgCopyBtn.addEventListener('click', (e) => copyToClipboard(e.currentTarget, formatColor(hexToRgb(bgPicker.value), units[currentUnitIndex])));
 
     function updateFontSizeOptions() {
-        const unit = document.querySelector('input[name="font-size-unit"]:checked').value;
-        const currentVal = fontSizeSelect.value;
+        const unitEl = document.querySelector('input[name="font-size-unit"]:checked');
+        const unit = unitEl ? unitEl.value : 'px';
+        const prevIdx = fontSizeSelect.selectedIndex >= 0 ? fontSizeSelect.selectedIndex : 0;
         fontSizeSelect.innerHTML = '';
-        let options = unit === 'pt' ? 
-            [{ value: 12, text: 'Less than 14' }, { value: 14, text: '14 to 17.99' }, { value: 18, text: '18 or more' }] :
-            [{ value: 16, text: 'Less than 18.66' }, { value: 18.66, text: '18.66 to 23.99' }, { value: 24, text: '24 or more' }];
-
-        options.forEach(opt => {
-            const o = document.createElement('option');
-            o.value = opt.value; o.textContent = opt.text;
-            fontSizeSelect.appendChild(o);
+        let opts = unit === 'pt' ? 
+            [{ v: 12, t: 'Less than 14' }, { v: 14, t: '14 to 17.99' }, { v: 18, t: '18 or more' }] :
+            [{ v: 16, t: 'Less than 18.5' }, { v: 18.5, t: '18.5 to 23.99' }, { v: 24, t: '24 or more' }];
+        opts.forEach(opt => {
+            const o = document.createElement('option'); o.value = opt.v; o.textContent = opt.t; fontSizeSelect.appendChild(o);
         });
-        fontSizeSelect.value = options.find(o => o.value == currentVal) ? currentVal : options[0].value;
+        fontSizeSelect.selectedIndex = prevIdx;
     }
 
-    function checkContrast(fgColor, bgColor) {
+    function triggerCheck(isInitial = false) {
+        if (!isInitial) initAudio();
+        checkContrast(isInitial);
+    }
+
+    function getBadgeStyles(isEnlarged = false) {
+        const weight = fontWeightSelect.value === '700' ? 'bold' : 'normal';
+        if (isEnlarged) return { size: '19px', weight: 'bold' };
+        const idx = fontSizeSelect.selectedIndex;
+        const sizeMap = ['16px', '20px', '24px'];
+        return { size: sizeMap[idx] || '16px', weight: weight };
+    }
+
+    function checkContrast(isInitial = false) {
         const isNonText = noTextCheckbox.checked;
-        const fgParsed = parseColorToRgb(fgColor);
-        const bgParsed = parseColorToRgb(bgColor);
+        const fgRaw = getFullFgRgb(); 
+        const bgRgb = hexToRgb(bgPicker.value);
+        const activeUnit = units[currentUnitIndex];
 
-        if (!fgParsed || !bgParsed) {
-            suggestionsContainer.style.display = 'none';
-            successMessage.style.display = 'none';
-            contrastRatioSpan.textContent = '-';
-            contrastRatioSpan.style.color = '';
-            return;
-        }
+        const fgDisplayColor = formatColor(fgRaw, activeUnit);
+        const bgDisplayColor = formatColor(bgRgb, activeUnit);
 
-        const fgRgb = fgParsed.a < 1 ? flattenColor(fgParsed, bgParsed) : fgParsed;
-        const ratio = getContrastRatio(fgRgb, bgParsed);
+        fgPicker.style.opacity = fgRaw.a;
+        fgCopyBtn.setAttribute('data-tooltip', "Copy " + fgDisplayColor);
+        fgCopyBtn.setAttribute('aria-label', "Copy " + fgDisplayColor);
+        bgCopyBtn.setAttribute('data-tooltip', "Copy " + bgDisplayColor);
+        bgCopyBtn.setAttribute('aria-label', "Copy " + bgDisplayColor);
+
+        const fgFlat = {
+            r: Math.round(fgRaw.a * fgRaw.r + (1 - fgRaw.a) * bgRgb.r),
+            g: Math.round(fgRaw.a * fgRaw.g + (1 - fgRaw.a) * bgRgb.g),
+            b: Math.round(fgRaw.a * fgRaw.b + (1 - fgRaw.a) * bgRgb.b)
+        };
+
+        const ratio = getContrastRatio(fgFlat, bgRgb);
         contrastRatioSpan.textContent = ratio.toFixed(2);
 
-        let needed = 4.5;
-        let isLarge = false;
+        let needed = 4.5, isLarge = false;
         if (!isNonText) {
             const fs = parseFloat(fontSizeSelect.value);
             const unit = document.querySelector('input[name="font-size-unit"]:checked').value;
             const weight = parseInt(fontWeightSelect.value, 10);
-            if (unit === 'pt') { isLarge = (fs >= 18) || (fs >= 14 && weight >= 700); }
-            else { isLarge = (fs >= 24) || (fs >= 18.66 && weight >= 700); }
+            if (unit === 'pt') isLarge = (fs >= 18) || (fs >= 14 && weight >= 700);
+            else isLarge = (fs >= 24) || (fs >= 18.5 && weight >= 700);
             needed = isLarge ? 3.0 : 4.5;
-        } else {
-            needed = 3.0;
-        }
+        } else { needed = 3.0; }
 
         const passes = ratio >= needed;
-        contrastRatioSpan.style.color = passes ? 'var(--pass-color)' : 'var(--fail-color)';
+        const isPartial = !isNonText && ratio >= 3.0 && ratio < 4.5;
+
+        if (!isInitial) {
+            if (!firstUserInteractionOccurred) {
+                if (passes) playPassSound(); else playFailSound();
+                statusAnnouncer.textContent = passes ? 'Passes' : 'Fails';
+                firstUserInteractionOccurred = true;
+            } else if (lastPassStatus !== null && lastPassStatus !== passes) {
+                if (passes) playPassSound(); else playFailSound();
+                statusAnnouncer.textContent = passes ? 'Passes' : 'Fails';
+            }
+        }
+        lastPassStatus = passes;
+
+        let statusColor = 'var(--fail-color)';
+        if (passes) statusColor = 'var(--pass-color)';
+        else if (isPartial) statusColor = 'var(--warning-color)';
+
+        contrastRatioSpan.style.color = statusColor;
+        resultsContainer.style.borderColor = statusColor;
         neededRatioSpan.textContent = needed.toFixed(2);
-        
+
+        const bStyles = getBadgeStyles();
         if (isNonText) {
-            aaOverallStatusSpan.innerHTML = passes ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-xmark"></i>';
+            aaOverallStatusSpan.innerHTML = `<i class="fa-solid fa-${passes ? 'check' : 'xmark'}" style="font-size:${bStyles.size}; line-height:1;"></i>`;
         } else {
             aaOverallStatusSpan.textContent = passes ? 'PASS' : 'FAIL';
+            aaOverallStatusSpan.style.fontSize = bStyles.size;
+            aaOverallStatusSpan.style.fontWeight = bStyles.weight;
         }
-        aaOverallStatusSpan.style.color = fgColor;
-        aaOverallStatusSpan.style.backgroundColor = bgColor;
+        aaOverallStatusSpan.style.color = rgbToHex(fgFlat);
+        aaOverallStatusSpan.style.backgroundColor = bgPicker.value;
         aaTextTypeSpan.textContent = isNonText ? '(Graphics/UI)' : `(${isLarge ? 'Large text' : 'Normal text'})`;
 
         if (passes) {
             suggestionsContainer.style.display = 'none';
             successMessage.style.display = 'block';
+            const scNumber = isNonText ? "1.4.11" : "1.4.3";
+            const scUrl = isNonText ? "https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast" : "https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html";
+            const isFav = isCombinationStored(fgRaw, bgRgb, isNonText);
+            const favClass = isFav ? 'fa-solid' : 'fa-regular';
+            const fgStr = formatColor(fgRaw, activeUnit);
+            const bgStr = formatColor(bgRgb, activeUnit);
+            const comboStr = `${fgStr} on ${bgStr}`;
+
+            successMessage.innerHTML = `
+                <div style="font-size: 15px; margin-bottom: 2px;">Well done!</div>
+                <div style="padding-right: 64px;">Your contrast meets <a href="${scUrl}" target="_blank" style="color: inherit; text-decoration: underline;">WCAG SC${scNumber}</a>!</div>
+                <div class="success-btn-group">
+                    <button id="success-fav-btn" class="fav-btn" type="button" data-tooltip="Store as favourite" aria-label="Add to stored combinations">
+                        <i class="${favClass} fa-star"></i>
+                    </button>
+                    <button id="success-copy-btn" class="copy-small-btn" type="button" data-tooltip="Copy ${comboStr}" aria-label="Copy ${comboStr}">
+                        <i class="fa-solid fa-copy"></i>
+                    </button>
+                </div>
+            `;
+            document.getElementById('success-fav-btn').onclick = () => addCombination(fgRaw, bgRgb, isNonText);
+            document.getElementById('success-copy-btn').onclick = () => copyToClipboard(document.getElementById('success-copy-btn'), comboStr);
         } else {
             suggestionsContainer.style.display = 'flex';
             successMessage.style.display = 'none';
-            generateSuggestions(fgColor, bgColor, fgParsed, bgParsed, needed, isNonText, isLarge, ratio);
+            generateSuggestions(fgRaw, bgRgb, needed, isNonText, isLarge, ratio);
         }
     }
 
-    function setupSuggestionBtn(btn, text, labelEl) {
-        btn.innerHTML = '<i class="fa-solid fa-copy"></i>';
-        btn.title = `Copy ${text}`;
-        btn.onclick = (e) => { e.stopPropagation(); copyToClipboard(btn, text); };
-    }
+    function generateSuggestions(fgRaw, bgRgb, needed, isNonText, isLarge, currentRatio) {
+        suggestionsList.innerHTML = '';
+        const activeUnit = units[currentUnitIndex];
+        const currentBgHex = bgPicker.value;
+        const currentBgActive = formatColor(bgRgb, activeUnit);
+        const currentFrontActive = formatColor(fgRaw, activeUnit);
+        const currentFrontAlphaValidHex = rgbToHex(fgRaw); 
+        
+        let count = 0;
+        const addS = (html) => { const d = document.createElement('div'); d.className = 'suggestion'; d.innerHTML = html; suggestionsList.appendChild(d); count++; return d; };
 
-    function generateSuggestions(fgColor, bgColor, fgParsed, bgParsed, needed, isNonText, isLarge, currentRatio) {
-        const types = ['font', 'alpha', 'c1', 'c2'];
-        types.forEach(t => document.getElementById(`${t === 'font' ? 'font-suggestion' : t + '-suggestion-wrapper'}`).style.display = 'none');
-
-        const fgFormat = getColorFormat(fgColor), bgFormat = getColorFormat(bgColor);
-        const currentFgFormatted = formatColor(fgParsed, fgFormat), currentBgFormatted = formatColor(bgParsed, bgFormat);
-
-        const styleBadge = (badge, f, b, isPass) => {
-            if (isNonText) badge.innerHTML = isPass ? '<i class="fa-solid fa-check"></i>' : '<i class="fa-solid fa-xmark"></i>';
-            else badge.textContent = isPass ? 'PASS' : 'FAIL';
-            badge.style.color = f; badge.style.backgroundColor = b;
+        const getBadgeHTML = (isPass, fg, bg, isEnlarged = false) => {
+            const bS = getBadgeStyles(isEnlarged);
+            if (isNonText) return `<i class="fa-solid fa-${isPass ? 'check' : 'xmark'}" style="font-size:${bS.size}; line-height:1;"></i>`;
+            return `<span style="font-size:${bS.size}; font-weight:${bS.weight}; line-height:1;">${isPass ? 'PASS' : 'FAIL'}</span>`;
         };
 
-        if (!isNonText && !isLarge && currentRatio >= 3.0) {
-            const s = document.getElementById('font-suggestion');
-            s.style.display = 'flex';
-            const b = document.getElementById('font-suggestion-badge');
-            b.textContent = 'PASS'; b.style.color = fgColor; b.style.backgroundColor = bgColor;
-            b.style.fontSize = "18.66px"; b.style.fontWeight = "700";
-            document.getElementById('font-suggestion-label').textContent = `Enlarge text: min 18.66px (14pt) bold or 24px (18pt) regular.`;
-            document.getElementById('font-suggestion-ratio-val').textContent = `Ratio: ${currentRatio.toFixed(2)} with Front ${currentFgFormatted} and Background ${currentBgFormatted}`;
+        if (!isNonText && currentRatio >= 3.0 && currentRatio < 4.5) {
+            addS(`<div class="status" style="color:${currentFrontAlphaValidHex}; background-color:${currentBgHex}; padding: 0;"><i class="fa-solid fa-check" style="font-size:16px;"></i></div>
+                  <div style="flex-grow:1;"><div style="color:var(--text-secondary); font-weight:500;">Use this colour combination only for <b>graphics and User Interface components</b>, not for text on background.</div></div>`);
         }
 
-        if (fgParsed.a < 1) {
-            const pA = findPassingAlpha(fgParsed, bgParsed, needed);
+        if (!isNonText && !isLarge && currentRatio >= 3.0) {
+            addS(`<div class="status" style="color:${currentFrontAlphaValidHex}; background-color:${currentBgHex}; padding: 0;">${getBadgeHTML(true, currentFrontAlphaValidHex, currentBgHex, true)}</div>
+                  <div style="flex-grow:1;"><div style="color:var(--text-secondary); font-weight:500;">Enlarge text: min 18.5px bold or 24px regular.</div>
+                  <div style="font-size:12px; color:var(--text-secondary);">Ratio: ${currentRatio.toFixed(2)} with Background ${currentBgActive}</div></div>`);
+        }
+
+        const setupSuggestionButtons = (el, fg, bg, isNonText, colorStr) => {
+            const copyBtn = el.querySelector('.copy-small-btn');
+            const favBtn = el.querySelector('.fav-btn');
+            const favIcon = favBtn.querySelector('i');
+            const isFav = isCombinationStored(fg, bg, isNonText);
+            favIcon.className = isFav ? 'fa-solid fa-star' : 'fa-regular fa-star';
+            copyBtn.onclick = () => copyToClipboard(copyBtn, colorStr);
+            favBtn.onclick = () => addCombination(fg, bg, isNonText);
+        };
+
+        const solidFg = { ...fgRaw, a: 1.0 };
+        if (getContrastRatio(solidFg, bgRgb) >= needed && fgRaw.a < 1.0) {
+            const pA = findPassingAlpha(fgRaw, bgRgb, needed);
             if (pA) {
-                const wrapper = document.getElementById('alpha-suggestion-wrapper');
-                wrapper.style.display = 'flex';
-                const str = formatColor(fgParsed, fgFormat, pA);
-                styleBadge(document.getElementById('suggestion-alpha-swatch'), str, bgColor, true);
-                const label = document.getElementById('alpha-suggestion-label');
-                label.innerHTML = `Set Front Alpha to <span class="suggestion-hex">${str}</span>`;
-                document.getElementById('alpha-suggestion-ratio-val').textContent = `Ratio: ${needed.toFixed(2)} with ${currentBgFormatted}`;
-                setupSuggestionBtn(document.getElementById('alpha-suggestion-copy-btn'), str, label);
+                const colorObj = { ...fgRaw, a: pA };
+                const colorStr = formatColor(colorObj, activeUnit);
+                const el = addS(`<div class="status" style="color:${rgbToHex(colorObj)}; background-color:${currentBgHex};">${getBadgeHTML(true)}</div>
+                    <div style="flex-grow:1; display:flex; flex-direction:column;">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="color:var(--text-secondary);">Set <b>Front opacity</b> to <b style="font-family:monospace;">${Math.round(pA * 100)}%</b></span>
+                            <div class="suggestion-btn-group">
+                                <button class="fav-btn" type="button" data-tooltip="Store as favourite" aria-label="Add to stored combinations"><i class="fa-regular fa-star"></i></button>
+                                <button class="copy-small-btn" type="button" data-tooltip="Copy ${colorStr}" aria-label="Copy ${colorStr}"><i class="fa-solid fa-copy"></i></button>
+                            </div>
+                        </div>
+                        <span style="font-size:12px; color:var(--text-secondary);">Ratio: ${needed.toFixed(2)} with Background ${currentBgActive}</span>
+                    </div>`);
+                setupSuggestionButtons(el, colorObj, bgRgb, isNonText, colorStr);
             }
         }
 
-        const sFg = findPassingColor(fgParsed.a < 1 ? flattenColor(fgParsed, bgParsed) : fgParsed, bgParsed, needed);
+        const sFg = findPassingFgColor(fgRaw, bgRgb, fgRaw.a, needed);
         if (sFg) {
-            const wrapper = document.getElementById('c1-suggestion-wrapper');
-            wrapper.style.display = 'flex';
-            const str = formatColor(sFg.rgb, fgFormat);
-            styleBadge(document.getElementById('suggestion-c1-swatch'), str, bgColor, true);
-            const label = document.getElementById('c1-suggestion-label');
-            label.innerHTML = `Replace Front with <span class="suggestion-hex">${str}</span>`;
-            document.getElementById('c1-suggestion-ratio-val').textContent = `Ratio: ${sFg.ratio.toFixed(2)} with ${currentBgFormatted}`;
-            setupSuggestionBtn(document.getElementById('c1-suggestion-copy-btn'), str, label);
+            const colorObj = { ...sFg.rgb, a: fgRaw.a };
+            const colorStr = formatColor(colorObj, activeUnit);
+            const el = addS(`<div class="status" style="color:${rgbToHex(colorObj)}; background-color:${currentBgHex};">${getBadgeHTML(true)}</div>
+                <div style="flex-grow:1; display:flex; flex-direction:column;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="color:var(--text-secondary);">Replace <b>Front</b> with <b style="font-family:monospace;">${colorStr}</b></span>
+                        <div class="suggestion-btn-group">
+                            <button class="fav-btn" type="button" data-tooltip="Store as favourite" aria-label="Add to stored combinations"><i class="fa-regular fa-star"></i></button>
+                            <button class="copy-small-btn" type="button" data-tooltip="Copy ${colorStr}" aria-label="Copy ${colorStr}"><i class="fa-solid fa-copy"></i></button>
+                        </div>
+                    </div>
+                    <span style="font-size:12px; color:var(--text-secondary);">Ratio: ${sFg.ratio.toFixed(2)} with Background ${currentBgActive}</span>
+                </div>`);
+            setupSuggestionButtons(el, colorObj, bgRgb, isNonText, colorStr);
         }
 
-        const sBg = findPassingColor(bgParsed, fgParsed.a < 1 ? flattenColor(fgParsed, bgParsed) : fgParsed, needed);
+        const sBg = findPassingBgColor(fgRaw, bgRgb, fgRaw.a, needed);
         if (sBg) {
-            const wrapper = document.getElementById('c2-suggestion-wrapper');
-            wrapper.style.display = 'flex';
-            const str = formatColor(sBg.rgb, bgFormat);
-            styleBadge(document.getElementById('suggestion-c2-swatch'), fgColor, str, true);
-            const label = document.getElementById('c2-suggestion-label');
-            label.innerHTML = `Replace Background with <span class="suggestion-hex">${str}</span>`;
-            document.getElementById('c2-suggestion-ratio-val').textContent = `Ratio: ${sBg.ratio.toFixed(2)} with ${currentFgFormatted}`;
-            setupSuggestionBtn(document.getElementById('c2-suggestion-copy-btn'), str, label);
+            const colorStr = formatColor(sBg.rgb, activeUnit);
+            const el = addS(`<div class="status" style="color:${currentFrontAlphaValidHex}; background-color:${rgbToHex(sBg.rgb)};">${getBadgeHTML(true)}</div>
+                <div style="flex-grow:1; display:flex; flex-direction:column;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="color:var(--text-secondary);">Replace <b>Background</b> with <b style="font-family:monospace;">${colorStr}</b></span>
+                        <div class="suggestion-btn-group">
+                            <button class="fav-btn" type="button" data-tooltip="Store as favourite" aria-label="Add to stored combinations"><i class="fa-regular fa-star"></i></button>
+                            <button class="copy-small-btn" type="button" data-tooltip="Copy ${colorStr}" aria-label="Copy ${colorStr}"><i class="fa-solid fa-copy"></i></button>
+                        </div>
+                    </div>
+                    <span style="font-size:12px; color:var(--text-secondary);">Ratio: ${sBg.ratio.toFixed(2)} with Front ${currentFrontActive}</span>
+                </div>`);
+            setupSuggestionButtons(el, fgRaw, sBg.rgb, isNonText, colorStr);
+        }
+
+        if (count === 0) {
+            const info = document.createElement('div'); info.className = 'no-suggestions-message';
+            info.innerHTML = `No simple adjustments found. Try picking a significantly different color.`;
+            suggestionsList.appendChild(info);
         }
     }
 
-    /* --- MATH HELPERS --- */
-    function getLuminance(rgb) {
-        const [r, g, b] = [rgb.r, rgb.g, rgb.b].map(c => {
-            c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-        });
-        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-    }
-    function getContrastRatio(rgb1, rgb2) {
-        const l1 = getLuminance(rgb1), l2 = getLuminance(rgb2);
-        return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
-    }
-    function flattenColor(fg, bg) {
-        return { r: Math.round(fg.a * fg.r + (1 - fg.a) * bg.r), g: Math.round(fg.a * fg.g + (1 - fg.a) * bg.g), b: Math.round(fg.a * fg.b + (1 - fg.a) * bg.b) };
-    }
-    function parseColorToRgb(str) {
-        const div = document.createElement('div'); div.style.color = str; document.body.appendChild(div);
-        const computed = getComputedStyle(div).color; document.body.removeChild(div);
-        const match = computed.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
-        return match ? { r: +match[1], g: +match[2], b: +match[3], a: match[4] !== undefined ? +match[4] : 1 } : null;
-    }
-    function getColorFormat(str) { if (str.startsWith('rgb')) return 'rgb'; if (str.startsWith('hsl')) return 'hsl'; return 'hex'; }
-    function formatColor(rgbObj, format, alphaOverride = null) {
-        const a = alphaOverride !== null ? alphaOverride : (rgbObj.a !== undefined ? rgbObj.a : 1.0);
-        if (format === 'rgb') return a < 1 ? `rgba(${rgbObj.r}, ${rgbObj.g}, ${rgbObj.b}, ${a.toFixed(2)})` : `rgb(${rgbObj.r}, ${rgbObj.g}, ${rgbObj.b})`;
-        if (format === 'hsl') {
-            const { h, s, l } = rgbToHsl(rgbObj);
-            const H = Math.round(h * 360), S = Math.round(s * 100), L = Math.round(l * 100);
-            return a < 1 ? `hsla(${H}, ${S}%, ${L}%, ${a.toFixed(2)})` : `hsl(${H}, ${S}%, ${L}%)`;
-        }
-        const toH = (v) => Math.round(v).toString(16).padStart(2, '0');
-        const hex = "#" + toH(rgbObj.r) + toH(rgbObj.g) + toH(rgbObj.b);
-        return (format === 'hex' && a < 1) ? hex + toH(a * 255) : hex;
-    }
-    function rgbToHsl(rgb) {
-        let r = rgb.r / 255, g = rgb.g / 255, b = rgb.b / 255, max = Math.max(r, g, b), min = Math.min(r, g, b), h, s, l = (max + min) / 2;
-        if (max === min) h = s = 0;
-        else {
-            const d = max - min; s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-            if (max === r) h = (g - b) / d + (g < b ? 6 : 0); else if (max === g) h = (b - r) / d + 2; else h = (r - g) / d + 4;
-            h /= 6;
-        }
-        return { h, s, l };
-    }
-    function hslToRgb(hsl) {
-        let h = hsl.h, s = hsl.s, l = hsl.l, r, g, b;
-        if (s === 0) r = g = b = l;
-        else {
-            const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
-            const h2r = (p, q, t) => { if (t < 0) t += 1; if (t > 1) t -= 1; if (t < 1/6) return p + (q - p) * 6 * t; if (t < 1/2) return q; if (t < 2/3) return p + (q - p) * (2/3 - t) * 6; return p; };
-            r = h2r(p, q, h + 1/3); g = h2r(p, q, h); b = h2r(p, q, h - 1/3);
-        }
-        return { r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255) };
-    }
-    function findPassingColor(color, target, ratio) {
-        const hsl = rgbToHsl(color), lTarget = getLuminance(target), direction = lTarget > 0.5 ? -1 : 1;
-        for (let step = 0; step <= 100; step++) {
-            const newL = Math.max(0, Math.min(1, hsl.l + (step * 0.01 * direction)));
-            const rgb = hslToRgb({ ...hsl, l: newL });
-            if (getContrastRatio(rgb, target) >= ratio) return { rgb, ratio: getContrastRatio(rgb, target) };
-        }
-        return null;
-    }
-    function findPassingAlpha(fg, bg, needed) {
-        for (let a = 0.01; a <= 1; a += 0.01) { if (getContrastRatio(flattenColor({ ...fg, a }, bg), bg) >= needed) return a; }
-        return null;
-    }
-    async function pickColor(inputElement) {
-        if (!window.EyeDropper) return;
-        const eyeDropper = new EyeDropper();
-        try { const result = await eyeDropper.open(); inputElement.value = result.sRGBHex; inputElement.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
-    }
+    /* --- MATH CORE --- */
+    function getLuminance(rgb) { const [r, g, b] = [rgb.r, rgb.g, rgb.b].map(c => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; }
+    function getContrastRatio(rgb1, rgb2) { const l1 = getLuminance(rgb1), l2 = getLuminance(rgb2); return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05); }
+    function rgbToHsl(rgb) { let r = rgb.r / 255, g = rgb.g / 255, b = rgb.b / 255, max = Math.max(r, g, b), min = Math.min(r, g, b), h, s, l = (max + min) / 2; if (max === min) h = s = 0; else { const d = max - min; s = l > 0.5 ? d / (2 - max - min) : d / (max + min); if (max === r) h = (g - b) / d + (g < b ? 6 : 0); else if (max === g) h = (b - r) / d + 2; else h = (r - g) / d + 4; h /= 6; } return { h, s, l }; }
+    function hslToRgb(hsl) { let h = hsl.h, s = hsl.s, l = hsl.l, r, g, b; if (s === 0) r = g = b = l; else { const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q; const h2r = (p, q, t) => { if (t < 0) t += 1; if (t > 1) t -= 1; if (t < 1/6) return p + (q - p) * 6 * t; if (t < 1/2) return q; if (t < 2/3) return p + (q - p) * (2/3 - t) * 6; return p; }; r = h2r(p, q, h + 1/3); g = h2r(p, q, h); b = h2r(p, q, h - 1/3); } return { r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255) }; }
+    function findPassingFgColor(fg, bg, a, req) { const hsl = rgbToHsl(fg), dir = getLuminance(bg) > 0.5 ? -1 : 1; for (let i = 0; i <= 100; i++) { const l = Math.max(0, Math.min(1, hsl.l + (i * 0.01 * dir))); const cand = hslToRgb({ ...hsl, l }); const bl = { r: Math.round(a * cand.r + (1-a)*bg.r), g: Math.round(a * cand.g + (1-a)*bg.g), b: Math.round(a * cand.b + (1-a)*bg.b) }; const ratio = getContrastRatio(bl, bg); if (ratio >= req) return { rgb: cand, ratio }; } return null; }
+    function findPassingBgColor(fg, bg, a, req) { const hsl = rgbToHsl(bg), dir = getLuminance(fg) > 0.5 ? -1 : 1; for (let i = 0; i <= 100; i++) { const l = Math.max(0, Math.min(1, hsl.l + (i * 0.01 * dir))); const cand = hslToRgb({ ...hsl, l }); const bl = { r: Math.round(a * fg.r + (1-a)*cand.r), g: Math.round(a * fg.g + (1-a)*cand.g), b: Math.round(a * fg.b + (1-a)*cand.b) }; const ratio = getContrastRatio(bl, cand); if (ratio >= req) return { rgb: cand, ratio }; } return null; }
+    function findPassingAlpha(fg, bg, req) { for (let a = 0.01; a <= 1.0; a += 0.01) { const bl = { r: Math.round(a * fg.r + (1-a)*bg.r), g: Math.round(a * fg.g + (1-a)*bg.g), b: Math.round(a * fg.b + (1-a)*bg.b) }; if (getContrastRatio(bl, bg) >= req) return parseFloat(a.toFixed(2)); } return null; }
 
-    loadSavedData();
-    updateCopyTooltips();
+    updateFontSizeOptions();
+    updateUnitToggleButton();
+    renderHistory();
+    triggerCheck(true); 
 });

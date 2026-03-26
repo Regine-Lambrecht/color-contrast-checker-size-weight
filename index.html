@@ -682,7 +682,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (passingHistory.length === 0) {
             const emptyMsg = document.createElement('div');
             emptyMsg.className = 'empty-history-msg';
-            emptyMsg.textContent = "Save your favourite passing combinations here";
+            emptyMsg.textContent = "Save your favorite passing combinations here";
             historyList.appendChild(emptyMsg);
             clearHistoryBtn.style.display = 'none';
             return;
@@ -825,9 +825,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const bgRgb = hexToRgb(bgPicker.value);
         const activeUnit = units[currentUnitIndex];
 
+        const fgDisplayColor = formatColor(fgRaw, activeUnit);
+        const bgDisplayColor = formatColor(bgRgb, activeUnit);
+
         fgPicker.style.opacity = fgRaw.a;
-        fgCopyBtn.setAttribute('data-tooltip', "Copy " + formatColor(fgRaw, activeUnit));
-        bgCopyBtn.setAttribute('data-tooltip', "Copy " + formatColor(bgRgb, activeUnit));
+        fgCopyBtn.setAttribute('data-tooltip', "Copy " + fgDisplayColor);
+        fgCopyBtn.setAttribute('aria-label', "Copy " + fgDisplayColor);
+        bgCopyBtn.setAttribute('data-tooltip', "Copy " + bgDisplayColor);
+        bgCopyBtn.setAttribute('aria-label', "Copy " + bgDisplayColor);
 
         const fgFlat = {
             r: Math.round(fgRaw.a * fgRaw.r + (1 - fgRaw.a) * bgRgb.r),

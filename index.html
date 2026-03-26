@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<!-- saved from url=(0070)https://regine-lambrecht.github.io/color-contrast-checker-size-weight/ -->
-<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Colour Contrast Checker Pro</title>
     
@@ -9,298 +9,316 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
-/* --- UI STYLING --- */
-:root {
-    --bg-color: #F3F6F5; 
-    --surface-color: #ffffff;
-    --text-primary: #1a202c;
-    --text-secondary: #54615D; 
-    --border-color: #ced5d3; 
-    --accent-color: #0062cc;
-    --pass-color: #00784d; 
-    --fail-color: #cd1a00; 
-    --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
-}
+        /* --- UI STYLING --- */
+        :root {
+            --bg-color: #F3F6F5; 
+            --surface-color: #ffffff;
+            --text-primary: #1a202c;
+            --text-secondary: #54615D; 
+            --border-color: #ced5d3; 
+            --accent-color: #0062cc;
+            --pass-color: #00784d; 
+            --fail-color: #cd1a00;
+            --warning-color: #985c00; /* Updated to meet 4.5:1 against #e6ebe9 */
+            --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+        }
 
-body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    background-color: var(--bg-color);
-    color: var(--text-primary);
-    width: 100%;
-    max-width: 440px;
-    padding: 0;
-    margin: 0 auto;
-    font-size: 14px;
-    display: flex;
-    flex-direction: column;
-    min-height: 580px;
-}
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            width: 100%;
+            max-width: 440px;
+            padding: 0;
+            margin: 0 auto;
+            font-size: 14px;
+            display: flex;
+            flex-direction: column;
+            min-height: 580px;
+        }
 
-main { padding: 0 16px 16px; flex-grow: 1; }
-.banner { width: 100%; display: block; height: auto; border-bottom: 1px solid var(--border-color); }
-h1 { font-size: 18px; text-align: center; margin: 16px 0 16px; color: var(--text-primary); }
+        main { padding: 0 16px 16px; flex-grow: 1; }
+        .banner { width: 100%; display: block; height: auto; border-bottom: 1px solid var(--border-color); }
+        
+        .header-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            margin: 16px 0;
+        }
 
-.input-flex-container { display: flex; gap: 12px; margin-bottom: 16px; align-items: stretch; }
-.input-group { display: flex; flex-direction: column; position: relative; }
+        h1 { font-size: 18px; text-align: center; margin: 0; color: var(--text-primary); }
 
-.input-group label, .label-row label { 
-    font-weight: 600; 
-    color: var(--text-secondary); 
-    font-size: 12px; 
-    margin-bottom: 4px; 
-}
+        .header-sound-btn {
+            position: absolute;
+            right: 0;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 18px;
+            padding: 4px;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+        .header-sound-btn:hover {
+            color: var(--accent-color);
+        }
 
-.label-row {
-    display: flex; gap: 8px;
-}
+        .input-flex-container { display: flex; gap: 12px; margin-bottom: 16px; align-items: stretch; }
+        .input-group { display: flex; flex-direction: column; position: relative; }
 
-fieldset {
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 12px;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    background-color: var(--surface-color);
-}
-.colours-fieldset { flex: 4.5; }
-.font-fieldset { flex: 5.5; }
+        .input-group label, .label-row label { 
+            font-weight: 600; 
+            color: var(--text-secondary); 
+            font-size: 12px; 
+            margin-bottom: 4px; 
+        }
 
-legend { 
-    padding: 0 8px; 
-    font-weight: 600; 
-    font-size: 13px; 
-    color: var(--text-secondary);
-}
+        .label-row {
+            display: flex; gap: 8px;
+        }
 
-/* Borderless fieldset for unit grouping */
-.unit-fieldset {
-    border: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    background: transparent !important;
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 0 !important;
-    width: auto !important;
-    transition: opacity 0.2s;
-}
+        fieldset {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background-color: var(--surface-color);
+            position: relative;
+        }
+        .colours-fieldset { flex: 4.5; }
+        .font-fieldset { flex: 5.5; }
 
-.unit-fieldset.disabled {
-    opacity: 0.5;
-    pointer-events: none;
-}
+        legend { 
+            padding: 0 8px; 
+            font-weight: 600; 
+            font-size: 13px; 
+            color: var(--text-secondary);
+        }
 
-.unit-fieldset legend {
-    padding: 0 !important;
-    margin-bottom: 4px !important;
-    font-size: 12px !important;
-    font-weight: 600 !important;
-    color: var(--text-secondary) !important;
-    float: left;
-    width: 100%;
-}
+        .unit-fieldset {
+            border: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            background: transparent !important;
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 0 !important;
+            width: auto !important;
+            transition: opacity 0.2s;
+        }
 
-.legend-checkbox-inner {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-weight: 400;
-    font-size: 12px; 
-    color: var(--text-secondary); 
-    cursor: pointer;
-    margin-left: 8px;
-}
+        .unit-fieldset.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
 
-/* Screen reader only utility */
-.sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border-width: 0;
-}
+        .unit-fieldset legend {
+            padding: 0 !important;
+            margin-bottom: 4px !important;
+            font-size: 12px !important;
+            font-weight: 600 !important;
+            color: var(--text-secondary) !important;
+            float: left;
+            width: 100%;
+        }
 
-.suggestions-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 8px;
-}
+        .legend-checkbox-inner {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: 400;
+            font-size: 12px; 
+            color: var(--text-secondary); 
+            cursor: pointer;
+            margin-left: 8px;
+        }
 
-.unit-toggle-btn {
-    background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    padding: 4px 8px;
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--text-secondary);
-    cursor: pointer;
-    text-transform: uppercase;
-    transition: all 0.2s;
-    line-height: 1;
-    box-shadow: var(--shadow);
-}
-.unit-toggle-btn:hover {
-    border-color: var(--accent-color);
-    color: var(--accent-color);
-}
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
 
-.color-row { display: flex; align-items: center; gap: 8px; }
-.font-row { display: flex; gap: 8px; }
+        .suggestions-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
 
-input[type="color"] {
-    -webkit-appearance: none;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    width: 34px;
-    height: 34px;
-    cursor: pointer;
-    background: none;
-    padding: 0;
-    overflow: hidden;
-    flex-shrink: 0;
-}
-input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
-input[type="color"]::-webkit-color-swatch { border: none; }
+        .unit-toggle-btn {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.2s;
+            line-height: 1;
+            box-shadow: var(--shadow);
+        }
+        .unit-toggle-btn:hover {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
 
-/* Visible focus for color pickers, checkboxes, and opacity input */
-input[type="color"]:focus-visible,
-input[type="checkbox"]:focus-visible,
-.opacity-input:focus-visible,
-select:focus-visible,
-button:focus-visible {
-    outline: 2px solid var(--accent-color);
-    outline-offset: 3px;
-}
+        .color-row { display: flex; align-items: center; gap: 8px; }
+        .font-row { display: flex; gap: 8px; }
 
-.color-preview-wrapper {
-    position: relative;
-    width: 34px;
-    height: 34px;
-    border-radius: 6px;
-    background-image: 
-        linear-gradient(45deg, #ccc 25%, transparent 25%), 
-        linear-gradient(-45deg, #ccc 25%, transparent 25%), 
-        linear-gradient(45deg, transparent 75%, #ccc 75%), 
-        linear-gradient(-45deg, transparent 75%, #ccc 75%);
-    background-size: 8px 8px;
-    background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
-    background-color: white;
-    flex-shrink: 0;
-}
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            width: 34px;
+            height: 34px;
+            cursor: pointer;
+            background: none;
+            padding: 0;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type="color"]::-webkit-color-swatch { border: none; }
 
-.opacity-input {
-    width: 58px;
-    height: 34px;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    padding: 0 4px;
-    text-align: center;
-    font-size: 13px;
-    box-shadow: var(--shadow);
-    box-sizing: border-box;
-}
+        input[type="color"]:focus-visible,
+        input[type="checkbox"]:focus-visible,
+        .opacity-input:focus-visible,
+        select:focus-visible,
+        button:focus-visible {
+            outline: 2px solid var(--accent-color);
+            outline-offset: 3px;
+        }
 
-.input-group select, .unit-switcher-container {
-    height: 34px;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    background-color: var(--surface-color);
-    box-sizing: border-box;
-    font-size: 13px;
-    box-shadow: var(--shadow);
-}
+        .color-preview-wrapper {
+            position: relative;
+            width: 34px;
+            height: 34px;
+            border-radius: 6px;
+            background-image: 
+                linear-gradient(45deg, #ccc 25%, transparent 25%), 
+                linear-gradient(-45deg, #ccc 25%, transparent 25%), 
+                linear-gradient(45deg, transparent 75%, #ccc 75%), 
+                linear-gradient(-45deg, transparent 75%, #ccc 75%);
+            background-size: 8px 8px;
+            background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
+            background-color: white;
+            flex-shrink: 0;
+        }
 
-.unit-switcher-container { 
-    display: flex; 
-    padding: 2px; 
-    width: 68px; 
-    flex-shrink: 0; 
-}
+        .opacity-input {
+            width: 58px;
+            height: 34px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0 4px;
+            text-align: center;
+            font-size: 13px;
+            box-shadow: var(--shadow);
+            box-sizing: border-box;
+        }
 
-.toggle-switch { display: flex; width: 100%; height: 100%; position: relative; }
-.toggle-switch input[type="radio"] { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
+        .input-group select, .unit-switcher-container {
+            height: 34px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: var(--surface-color);
+            box-sizing: border-box;
+            font-size: 13px;
+            box-shadow: var(--shadow);
+        }
 
-.toggle-switch label {
-    padding: 0; margin: 0; display: flex; align-items: center; justify-content: center;
-    cursor: pointer; color: var(--text-secondary); transition: all 0.2s ease;
-    font-size: 10px; font-weight: 700; flex: 1; z-index: 2; border-radius: 4px;
-}
+        .unit-switcher-container { 
+            display: flex; 
+            padding: 2px; 
+            width: 68px; 
+            flex-shrink: 0; 
+        }
 
-.toggle-switch input[type="radio"]:checked + label {
-    background-color: var(--accent-color);
-    color: #ffffff;
-}
+        .toggle-switch { display: flex; width: 100%; height: 100%; position: relative; }
+        .toggle-switch input[type="radio"] { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
 
-/* Visible focus for unit switcher labels */
-.toggle-switch input[type="radio"]:focus-visible + label {
-    outline: 2px solid var(--accent-color);
-    outline-offset: 3px;
-    border-radius: 4px;
-}
+        .toggle-switch label {
+            padding: 0; margin: 0; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; color: var(--text-secondary); transition: all 0.2s ease;
+            font-size: 10px; font-weight: 700; flex: 1; z-index: 2; border-radius: 4px;
+        }
 
-.copy-main-btn {
-    width: 32px; height: 34px; border: 1px solid var(--border-color); border-radius: 6px;
-    background: var(--surface-color); color: var(--text-secondary); cursor: pointer;
-    display: flex; align-items: center; justify-content: center; font-size: 14px;
-    box-shadow: var(--shadow);
-}
+        .toggle-switch input[type="radio"]:checked + label {
+            background-color: var(--accent-color);
+            color: #ffffff;
+        }
 
-.results-container {
-    padding: 12px 16px; box-shadow: var(--shadow); margin-top: 16px;
-    transition: border-color 0.2s ease; display: block !important;
-    background-color: #e6ebe9 !important; 
-}
-.results-3-col { display: flex; align-items: center; justify-content: space-between; gap: 8px; text-align: center; }
-.col-status { flex: 1; display: flex; justify-content: flex-start; }
-.col-data { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+        .copy-main-btn {
+            width: 32px; height: 34px; border: 1px solid var(--border-color); border-radius: 6px;
+            background: var(--surface-color); color: var(--text-secondary); cursor: pointer;
+            display: flex; align-items: center; justify-content: center; font-size: 14px;
+            box-shadow: var(--shadow);
+        }
 
-.result-label { 
-    color: var(--text-secondary); 
-    font-size: 12px; 
-    font-weight: 600; 
-    margin: 0; padding: 0;
-}
+        .results-container {
+            padding: 12px 16px; box-shadow: var(--shadow); margin-top: 16px;
+            transition: border-color 0.2s ease; display: block !important;
+            background-color: #e6ebe9 !important; 
+        }
 
-.result-value { font-weight: 700; font-family: monospace; font-size: 15px; }
+        .results-3-col { display: flex; align-items: center; justify-content: space-between; gap: 8px; text-align: center; }
+        .col-status { flex: 1; display: flex; justify-content: flex-start; }
+        .col-data { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; }
 
-.status {
-    font-weight: 700; 
-    padding: 4px 10px; 
-    border-radius: 6px; 
-    display: inline-flex; 
-    align-items: center; 
-    justify-content: center;
-    min-width: 64px; 
-    min-height: 32px; 
-    border: 1px solid rgba(0,0,0,0.15) !important;
-    box-sizing: border-box;
-}
+        .result-label { 
+            color: var(--text-secondary); 
+            font-size: 12px; 
+            font-weight: 600; 
+            margin: 0; padding: 0;
+        }
 
-.success-container {
-    margin-top: 12px; padding: 10px 16px; border-radius: 8px; background-color: #A9D3CF; 
-    color: #193426; border: 1px solid #92b9b5; font-weight: 600; font-size: 13px; text-align: center;
-}
+        .result-value { font-weight: 700; font-family: monospace; font-size: 15px; }
 
-.suggestions-container { margin-top: 16px; display: none; flex-direction: column; gap: 8px; }
-.suggestions-container h2 { font-size: 14px; color: var(--text-secondary); margin: 0; font-weight: 600; }
-.suggestion { background: var(--surface-color); padding: 10px 12px; border-radius: 6px; display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-color); }
-.suggestion-text { flex-grow: 1; color: var(--text-primary); }
+        .status {
+            font-weight: 700; 
+            padding: 4px 10px; 
+            border-radius: 6px; 
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center;
+            min-width: 64px; 
+            min-height: 32px; 
+            border: 1px solid rgba(0,0,0,0.15) !important;
+            box-sizing: border-box;
+        }
 
-.no-suggestions-message {
-    background: #e9eceb; padding: 12px; border-radius: 6px; border: 1px dashed var(--border-color);
-    color: var(--text-secondary); font-size: 13px; line-height: 1.4;
-}
+        .success-container {
+            margin-top: 12px; padding: 10px 16px; border-radius: 8px; background-color: #A9D3CF; 
+            color: #193426; border: 1px solid #92b9b5; font-weight: 600; font-size: 13px; text-align: center;
+        }
 
-footer { text-align: center; padding: 16px; border-top: 1px solid var(--border-color); font-size: 12px; color: var(--text-secondary); }
-footer a { color: var(--accent-color); text-decoration: underline; }
+        .suggestions-container { margin-top: 16px; display: none; flex-direction: column; gap: 8px; }
+        .suggestions-container h2 { font-size: 14px; color: var(--text-secondary); margin: 0; font-weight: 600; }
+        .suggestion { background: var(--surface-color); padding: 10px 12px; border-radius: 6px; display: flex; align-items: center; gap: 12px; border: 1px solid var(--border-color); }
+        .suggestion-text { flex-grow: 1; color: var(--text-primary); }
+
+        .no-suggestions-message {
+            background: #e9eceb; padding: 12px; border-radius: 6px; border: 1px dashed var(--border-color);
+            color: var(--text-secondary); font-size: 13px; line-height: 1.4;
+        }
+
+        footer { text-align: center; padding: 16px; border-top: 1px solid var(--border-color); font-size: 12px; color: var(--text-secondary); }
+        footer a { color: var(--accent-color); text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -308,7 +326,12 @@ footer a { color: var(--accent-color); text-decoration: underline; }
 <img src="https://regine-lambrecht.github.io/color-contrast-checker-size-weight/images/banner.png" alt="Eleven Ways" class="banner" onerror="this.style.display='none'">
 
 <main>
-    <h1>Colour Contrast Checker</h1>
+    <div class="header-container">
+        <h1>Colour Contrast Checker</h1>
+        <button type="button" id="sound-toggle-btn" class="header-sound-btn" title="Enable sound feedback">
+            <i class="fa-solid fa-volume-xmark"></i>
+        </button>
+    </div>
 
     <div class="input-flex-container">
         <fieldset class="colours-fieldset">
@@ -343,7 +366,7 @@ footer a { color: var(--accent-color); text-decoration: underline; }
                 Font
                 <label class="legend-checkbox-inner">
                     <input type="checkbox" id="no-text-legend-checkbox">
-                    <span>No text</span>
+                    <span>Graphics/UI only</span>
                 </label>
             </legend>
             <div class="font-row">
@@ -361,8 +384,8 @@ footer a { color: var(--accent-color); text-decoration: underline; }
                 <div class="input-group" style="flex: 1;">
                     <label for="font-size">Size</label>
                     <select id="font-size">
-                        <option value="16">Less than 18.66</option>
-                        <option value="18.66">18.66 to 23.99</option>
+                        <option value="16">Less than 18.5</option>
+                        <option value="18.5">18.5 to 23.99</option>
                         <option value="24">24 or more</option>
                     </select>
                 </div>
@@ -395,14 +418,12 @@ footer a { color: var(--accent-color); text-decoration: underline; }
         </div>
     </fieldset>
 
-    <div id="success-message" class="success-container" style="display: none;">
-        Well done: your contrast meets the <a href="https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html" target="blank">WCAG SC1.4.3 requirements</a>!
-    </div>
+    <div id="success-message" class="success-container" style="display: none;"></div>
 
     <div class="suggestions-container">
         <div class="suggestions-header">
             <h2>Follow any of the suggestions below</h2>
-            <button type="button" id="unit-toggle-btn" class="unit-toggle-btn">HEX</button>
+            <button type="button" id="unit-toggle-btn" class="unit-toggle-btn">RGB</button>
         </div>
         <div id="suggestions-list" style="display: contents;"></div>
     </div>
@@ -419,6 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentUnitIndex = 0; 
     let lastPassStatus = null; 
     let firstUserInteractionOccurred = false;
+    let soundEnabled = false;
 
     /* --- DOM ELEMENTS --- */
     const fgPicker = document.getElementById('fg-picker');
@@ -438,6 +460,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const suggestionsContainer = document.querySelector('.suggestions-container');
     const suggestionsList = document.getElementById('suggestions-list');
     const unitToggleBtn = document.getElementById('unit-toggle-btn');
+    const soundToggleBtn = document.getElementById('sound-toggle-btn');
     const fgCopyBtn = document.getElementById('fg-copy-btn');
     const bgCopyBtn = document.getElementById('bg-copy-btn');
 
@@ -445,6 +468,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let audioCtx = null;
     const initAudio = () => { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); };
     const playTone = (freq, type = 'sine', duration = 0.1, volume = 0.05) => {
+        if (!soundEnabled) return;
         initAudio();
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
@@ -482,7 +506,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const hh = Math.round(h * 360), ss = Math.round(s * 100), ll = Math.round(l * 100);
             return a < 1 ? `hsla(${hh}, ${ss}%, ${ll}%, ${a.toFixed(2)})` : `hsl(${hh}, ${ss}%, ${ll}%)`;
         }
-        // HEX Format: specific logic for opacity percentage
         const toH = (v) => Math.round(v).toString(16).padStart(2, '0');
         let hex = "#" + toH(rgbObj.r) + toH(rgbObj.g) + toH(rgbObj.b);
         if (a < 1) return `${hex} ${Math.round(a * 100)}%`;
@@ -490,8 +513,9 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const updateUnitToggleButton = () => {
-        const current = units[currentUnitIndex].toUpperCase();
-        unitToggleBtn.textContent = current;
+        const nextIndex = (currentUnitIndex + 1) % units.length;
+        const nextUnit = units[nextIndex].toUpperCase();
+        unitToggleBtn.textContent = nextUnit;
     };
 
     /* --- LISTENERS --- */
@@ -505,6 +529,13 @@ document.addEventListener('DOMContentLoaded', () => {
         triggerCheck(false); 
     });
 
+    soundToggleBtn.addEventListener('click', () => {
+        soundEnabled = !soundEnabled;
+        const icon = soundToggleBtn.querySelector('i');
+        icon.className = soundEnabled ? 'fa-solid fa-volume-high' : 'fa-solid fa-volume-xmark';
+        soundToggleBtn.title = soundEnabled ? 'Mute sound feedback' : 'Enable sound feedback';
+    });
+
     document.querySelectorAll('input[name="font-size-unit"]').forEach(radio => {
         radio.addEventListener('change', () => {
             updateFontSizeOptions();
@@ -516,17 +547,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const isNoText = e.target.checked;
         fontSizeSelect.disabled = fontWeightSelect.disabled = isNoText;
         document.querySelectorAll('input[name="font-size-unit"]').forEach(r => r.disabled = isNoText);
-        
-        // Fully disable the Unit fieldset (legend and buttons)
         if (isNoText) unitGroup.classList.add('disabled');
         else unitGroup.classList.remove('disabled');
-        
         triggerCheck(false);
     });
 
     const copyToClipboard = (btn, text) => {
-        const ta = document.createElement("textarea"); ta.value = text; ta.style.position = "fixed"; ta.style.left = "-9999px";
-        document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+        const ta = document.createElement("textarea"); 
+        ta.value = text; ta.style.position = "fixed"; ta.style.left = "-9999px";
+        document.body.appendChild(ta); ta.select(); 
+        document.execCommand('copy');
         const icon = btn.querySelector('i');
         if (icon) { icon.className = 'fa-solid fa-check'; setTimeout(() => { icon.className = 'fa-solid fa-copy'; }, 1500); }
         document.body.removeChild(ta);
@@ -542,7 +572,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fontSizeSelect.innerHTML = '';
         let opts = unit === 'pt' ? 
             [{ v: 12, t: 'Less than 14' }, { v: 14, t: '14 to 17.99' }, { v: 18, t: '18 or more' }] :
-            [{ v: 16, t: 'Less than 18.66' }, { v: 18.66, t: '18.66 to 23.99' }, { v: 24, t: '24 or more' }];
+            [{ v: 16, t: 'Less than 18.5' }, { v: 18.5, t: '18.5 to 23.99' }, { v: 24, t: '24 or more' }];
         opts.forEach(opt => {
             const o = document.createElement('option'); o.value = opt.v; o.textContent = opt.t; fontSizeSelect.appendChild(o);
         });
@@ -554,11 +584,9 @@ document.addEventListener('DOMContentLoaded', () => {
         checkContrast(isInitial);
     }
 
-    /* Badge Sizing Logic */
     function getBadgeStyles(isEnlarged = false) {
         const weight = fontWeightSelect.value === '700' ? 'bold' : 'normal';
         if (isEnlarged) return { size: '19px', weight: 'bold' };
-        
         const idx = fontSizeSelect.selectedIndex;
         const sizeMap = ['16px', '20px', '24px'];
         return { size: sizeMap[idx] || '16px', weight: weight };
@@ -589,11 +617,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const unit = document.querySelector('input[name="font-size-unit"]:checked').value;
             const weight = parseInt(fontWeightSelect.value, 10);
             if (unit === 'pt') isLarge = (fs >= 18) || (fs >= 14 && weight >= 700);
-            else isLarge = (fs >= 24) || (fs >= 18.66 && weight >= 700);
+            else isLarge = (fs >= 24) || (fs >= 18.5 && weight >= 700);
             needed = isLarge ? 3.0 : 4.5;
         } else { needed = 3.0; }
 
         const passes = ratio >= needed;
+        const isPartial = !isNonText && ratio >= 3.0 && ratio < 4.5;
+
         if (!isInitial) {
             if (!firstUserInteractionOccurred) {
                 if (passes) playPassSound(); else playFailSound();
@@ -606,8 +636,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         lastPassStatus = passes;
 
-        contrastRatioSpan.style.color = passes ? 'var(--pass-color)' : 'var(--fail-color)';
-        resultsContainer.style.borderColor = passes ? 'var(--pass-color)' : 'var(--fail-color)';
+        let statusColor = 'var(--fail-color)';
+        if (passes) statusColor = 'var(--pass-color)';
+        else if (isPartial) statusColor = 'var(--warning-color)';
+
+        contrastRatioSpan.style.color = statusColor;
+        resultsContainer.style.borderColor = statusColor;
         neededRatioSpan.textContent = needed.toFixed(2);
 
         const bStyles = getBadgeStyles();
@@ -622,8 +656,24 @@ document.addEventListener('DOMContentLoaded', () => {
         aaOverallStatusSpan.style.backgroundColor = bgPicker.value;
         aaTextTypeSpan.textContent = isNonText ? '(Graphics/UI)' : `(${isLarge ? 'Large text' : 'Normal text'})`;
 
-        if (passes) { suggestionsContainer.style.display = 'none'; successMessage.style.display = 'block'; }
-        else { suggestionsContainer.style.display = 'flex'; successMessage.style.display = 'none'; generateSuggestions(fgRaw, bgRgb, needed, isNonText, isLarge, ratio); }
+        if (passes) {
+            suggestionsContainer.style.display = 'none';
+            successMessage.style.display = 'block';
+            
+            const scNumber = isNonText ? "1.4.11" : "1.4.3";
+            const scUrl = isNonText 
+                ? "https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast" 
+                : "https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html";
+            
+            successMessage.innerHTML = `
+                <div style="font-size: 15px; margin-bottom: 2px;">Well done!</div>
+                <div>Your contrast meets the <a href="${scUrl}" target="_blank" style="color: inherit; text-decoration: underline;">WCAG SC${scNumber} requirements</a>!</div>
+            `;
+        } else {
+            suggestionsContainer.style.display = 'flex';
+            successMessage.style.display = 'none';
+            generateSuggestions(fgRaw, bgRgb, needed, isNonText, isLarge, ratio);
+        }
     }
 
     function generateSuggestions(fgRaw, bgRgb, needed, isNonText, isLarge, currentRatio) {
@@ -632,10 +682,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentBgHex = bgPicker.value;
         const currentBgActive = formatColor(bgRgb, activeUnit);
         const currentFrontActive = formatColor(fgRaw, activeUnit);
-        const currentFrontAlphaValidHex = rgbToHex(fgRaw); // For CSS styles only
+        const currentFrontAlphaValidHex = rgbToHex(fgRaw); 
         
         let count = 0;
-
         const addS = (html) => { const d = document.createElement('div'); d.className = 'suggestion'; d.innerHTML = html; suggestionsList.appendChild(d); count++; return d; };
 
         const getBadgeHTML = (isPass, fg, bg, isEnlarged = false) => {
@@ -644,15 +693,19 @@ document.addEventListener('DOMContentLoaded', () => {
             return `<span style="font-size:${bS.size}; font-weight:${bS.weight}; line-height:1;">${isPass ? 'PASS' : 'FAIL'}</span>`;
         };
 
-        // 1. Enlarge text
+        // UI/Graphics Suggestion
+        if (!isNonText && currentRatio >= 3.0 && currentRatio < 4.5) {
+            addS(`<div class="status" style="color:${currentFrontAlphaValidHex}; background-color:${currentBgHex}; padding: 0;"><i class="fa-solid fa-check" style="font-size:16px;"></i></div>
+                  <div style="flex-grow:1;"><div style="color:var(--text-secondary); font-weight:500;">Use this colour combination only for <b>graphics and User Interface components</b>, not for text on background.</div></div>`);
+        }
+
         if (!isNonText && !isLarge && currentRatio >= 3.0) {
-            const req = (document.querySelector('input[name="font-size-unit"]:checked').value === 'px') ? 'min 18.66px bold or 24px regular.' : 'min 14pt bold or 18pt regular.';
+            const req = (document.querySelector('input[name="font-size-unit"]:checked').value === 'px') ? 'min 18.5px bold or 24px regular.' : 'min 14pt bold or 18pt regular.';
             addS(`<div class="status" style="color:${currentFrontAlphaValidHex}; background-color:${currentBgHex}; padding: 0;">${getBadgeHTML(true, currentFrontAlphaValidHex, currentBgHex, true)}</div>
                   <div style="flex-grow:1;"><div style="color:var(--text-secondary); font-weight:500;">Enlarge text: ${req}</div>
                   <div style="font-size:12px; color:var(--text-secondary);">Ratio: ${currentRatio.toFixed(2)} with Background ${currentBgActive}</div></div>`);
         }
 
-        // 2. Opacity
         const solidFg = { ...fgRaw, a: 1.0 };
         if (getContrastRatio(solidFg, bgRgb) >= needed && fgRaw.a < 1.0) {
             const pA = findPassingAlpha(fgRaw, bgRgb, needed);
@@ -671,7 +724,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // 3. Replace Front
         const sFg = findPassingFgColor(fgRaw, bgRgb, fgRaw.a, needed);
         if (sFg) {
             const colorStr = formatColor({ ...sFg.rgb, a: fgRaw.a }, activeUnit);
@@ -687,7 +739,6 @@ document.addEventListener('DOMContentLoaded', () => {
             el.querySelector('button').onclick = () => copyToClipboard(el.querySelector('button'), colorStr);
         }
 
-        // 4. Replace Background
         const sBg = findPassingBgColor(fgRaw, bgRgb, fgRaw.a, needed);
         if (sBg) {
             const colorStr = formatColor(sBg.rgb, activeUnit);
@@ -705,7 +756,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (count === 0) {
             const info = document.createElement('div'); info.className = 'no-suggestions-message';
-            info.innerHTML = `No simple adjustments found. This occurs when lightness changes, opacity increases, or enlarging the font alone cannot reach the required contrast ratio for the current hue. Try picking a significantly different color or a more opaque front color.`;
+            info.innerHTML = `No simple adjustments found. Try picking a significantly different color.`;
             suggestionsList.appendChild(info);
         }
     }
@@ -724,4 +775,5 @@ document.addEventListener('DOMContentLoaded', () => {
     triggerCheck(true); 
 });
 </script>
-</body></html>
+</body>
+</html>
